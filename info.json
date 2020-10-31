@@ -1,0 +1,13 @@
+{
+    "name": "Stasis_Mine",
+    "version": "1.0.0",
+    "title": "Stasis Mine",
+    "author": "Muppet9010",
+    "contact": "",
+    "homepage": "https://mods.factorio.com/mod/Stasis_Mine",
+    "factorio_version": "1.0",
+    "dependencies": [
+        "base >= 1.0"
+    ],
+    "description": "Adds a landmine that takes everything in to a temporary stasis. Becoming frozen and immune from damage."
+}
