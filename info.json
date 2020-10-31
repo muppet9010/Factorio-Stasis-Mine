@@ -9,5 +9,5 @@
     "dependencies": [
         "base >= 1.0"
     ],
-    "description": "Adds a landmine that takes everything in to a temporary stasis. Becoming frozen and immune from damage."
+    "description": "Adds a landmine that takes everything in to a temporary stasis, with them becoming frozen and immune from damage."
 }
