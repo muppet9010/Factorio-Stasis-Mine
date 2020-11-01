@@ -10,7 +10,6 @@ local function OnLoad()
 end
 
 local function OnSettingChanged(event)
-    StasisLandMine.OnSettingChanged(event)
     --if event == nil or event.setting == "xxxxx" then
     --	local x = tonumber(settings.global["xxxxx"].value)
     --end
@@ -20,6 +19,8 @@ local function OnStartup()
     CreateGlobals()
     OnLoad()
     OnSettingChanged(nil)
+
+    StasisLandMine.OnStartup()
 end
 
 script.on_init(OnStartup)

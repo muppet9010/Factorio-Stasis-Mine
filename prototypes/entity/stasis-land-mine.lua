@@ -18,7 +18,7 @@ data:extend(
             mined_sound = {filename = "__core__/sound/deconstruct-small.ogg"},
             max_health = 15,
             corpse = "land-mine-remnants",
-            --dying_explosion = "land-mine-explosion",
+            dying_explosion = "land-mine-explosion",
             collision_box = {{-0.4, -0.4}, {0.4, 0.4}},
             selection_box = {{-0.5, -0.5}, {0.5, 0.5}},
             damaged_trigger_effect = landmineEntityRef.damaged_trigger_effect,
@@ -45,38 +45,38 @@ data:extend(
                 height = 32
             },
             trigger_radius = 2.5,
-            ammo_category = "landmine",
+            timeout = 600,
+            ammo_category = "stasis",
             action = {
-                type = "direct",
-                action_delivery = {
-                    type = "instant",
+                {
+                    type = "direct",
                     source_effects = {
+                        type = "create-trivial-smoke",
+                        smoke_name = "stasis_mine-stasis_source_impact_effect",
+                        starting_frame_deviation = 16
+                    }
+                },
+                {
+                    type = "area",
+                    radius = 8,
+                    force = settings.startup["stasis_mine-stasis_force_effected"].value,
+                    collision_mask = {"player-layer"},
+                    action_delivery = {
                         {
-                            type = "nested-result",
-                            affects_target = true,
-                            action = {
-                                type = "area",
-                                radius = 6,
-                                --force = "enemy",
-                                action_delivery = {
-                                    type = "instant",
-                                    target_effects = {
-                                        {
-                                            type = "script",
-                                            effect_id = "stasis-land-mine"
-                                        }
-                                    }
+                            type = "instant",
+                            target_effects = {
+                                {
+                                    type = "script",
+                                    effect_id = "stasis-land-mine"
+                                },
+                                {
+                                    type = "create-trivial-smoke",
+                                    smoke_name = "stasis_mine-stasis_target_impact_effect",
+                                    offsets = {{0, -0.5}},
+                                    starting_frame_deviation = 16
                                 }
                             }
                         }
-                        --[[{
-                            type = "create-entity",
-                            entity_name = "explosion"
-                        },
-                        {
-                            type = "damage",
-                            damage = {amount = 1000, type = "explosion"}
-                        }--]]
                     }
                 }
             }

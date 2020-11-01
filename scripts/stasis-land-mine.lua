@@ -16,8 +16,8 @@ StasisLandMine.OnLoad = function()
     EventScheduler.RegisterScheduledEventType("StasisLandMine.RemoveStasisFromTarget", StasisLandMine.RemoveStasisFromTarget)
 end
 
-StasisLandMine.OnSettingChanged = function(event)
-    global.stasisLandMine.stasisAffectTime = 240
+StasisLandMine.OnStartup = function()
+    global.stasisLandMine.stasisAffectTime = tonumber(settings.startup["stasis_mine-stasis_time"].value) * 60
 end
 
 StasisLandMine.OnScriptTriggerEffect = function(event)
@@ -38,10 +38,11 @@ StasisLandMine.ApplyStasisToTarget = function(entity)
 
     global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
     EventScheduler.ScheduleEvent(game.tick + global.stasisLandMine.stasisAffectTime, "StasisLandMine.RemoveStasisFromTarget", global.stasisLandMine.nextSchedulerId, {entity = entity, identifier = identifier})
-    global.stasisLandMine.affectedEntities[identifier] = {wasActive = entity.active, wasDestructible = entity.destructible}
+    global.stasisLandMine.affectedEntities[identifier] = {wasActive = entity.active, wasDestructible = entity.destructible, oldHealth = entity.health}
 
     entity.active = false
     entity.destructible = false
+    entity.health = 0
 end
 
 StasisLandMine.RemoveStasisFromTarget = function(event)
@@ -55,6 +56,7 @@ StasisLandMine.RemoveStasisFromTarget = function(event)
 
     entity.active = affectedEntityData.wasActive
     entity.destructible = affectedEntityData.wasDestructible
+    entity.health = affectedEntityData.oldHealth
 end
 
 StasisLandMine.MakeEntityIdentifier = function(entity)
