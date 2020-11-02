@@ -26,11 +26,11 @@ local targetEffect = {
 
 local sourceEffect = Utils.DeepCopy(targetEffect)
 sourceEffect.name = "stasis_mine-stasis_source_impact_effect"
-sourceEffect.animation.scale = 4
-sourceEffect.duration = 90
+sourceEffect.animation.scale = 6
+sourceEffect.duration = 30
 sourceEffect.start_scale = 0.5
 sourceEffect.fade_in_duration = 10
-sourceEffect.fade_away_duration = 30
+sourceEffect.fade_away_duration = 10
 
 local dyingEffect = Utils.DeepCopy(targetEffect)
 dyingEffect.name = "stasis_mine-stasis_dying_effect"

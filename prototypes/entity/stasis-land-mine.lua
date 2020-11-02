@@ -20,6 +20,7 @@ data:extend(
             mined_sound = {filename = "__core__/sound/deconstruct-small.ogg"},
             max_health = 15,
             corpse = "stasis-land-mine-remnants",
+            random_corpse_variation = true,
             dying_explosion = "stasis_min-stasis_dying_explosion",
             dying_trigger_effect = {
                 type = "create-trivial-smoke",
@@ -57,35 +58,39 @@ data:extend(
             timeout = 600,
             ammo_category = "stasis",
             action = {
-                {
-                    type = "direct",
-                    action_delivery = {
-                        type = "instant",
-                        source_effects = {
+                type = "direct",
+                action_delivery = {
+                    type = "instant",
+                    source_effects = {
+                        {
+                            type = "nested-result",
+                            affects_target = true,
+                            action = {
+                                type = "area",
+                                radius = 6,
+                                force = settings.startup["stasis_mine-stasis_force_effected"].value,
+                                collision_mask = {"player-layer"},
+                                action_delivery = {
+                                    type = "instant",
+                                    target_effects = {
+                                        {
+                                            type = "script",
+                                            effect_id = "stasis-land-mine"
+                                        },
+                                        {
+                                            type = "create-trivial-smoke",
+                                            smoke_name = "stasis_mine-stasis_target_impact_effect",
+                                            offsets = {{0, -0.5}},
+                                            starting_frame_deviation = 16
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        {
                             type = "create-trivial-smoke",
                             smoke_name = "stasis_mine-stasis_source_impact_effect",
                             starting_frame_deviation = 16
-                        }
-                    }
-                },
-                {
-                    type = "area",
-                    radius = 8,
-                    force = settings.startup["stasis_mine-stasis_force_effected"].value,
-                    collision_mask = {"player-layer"},
-                    action_delivery = {
-                        type = "instant",
-                        target_effects = {
-                            {
-                                type = "script",
-                                effect_id = "stasis-land-mine"
-                            },
-                            {
-                                type = "create-trivial-smoke",
-                                smoke_name = "stasis_mine-stasis_target_impact_effect",
-                                offsets = {{0, -0.5}},
-                                starting_frame_deviation = 16
-                            }
                         }
                     }
                 }
