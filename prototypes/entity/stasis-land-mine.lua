@@ -19,7 +19,7 @@ data:extend(
             minable = {mining_time = 0.5, result = "land-mine"},
             mined_sound = {filename = "__core__/sound/deconstruct-small.ogg"},
             max_health = 15,
-            corpse = "land-mine-remnants",
+            corpse = "stasis-land-mine-remnants",
             dying_explosion = "stasis_min-stasis_dying_explosion",
             dying_trigger_effect = {
                 type = "create-trivial-smoke",
@@ -88,6 +88,61 @@ data:extend(
                             }
                         }
                     }
+                }
+            }
+        },
+        {
+            type = "corpse",
+            name = "stasis-land-mine-remnants",
+            icon = Constants.AssetModName .. "/graphics/item/stasis_land_mine.png",
+            icon_size = 64,
+            icon_mipmaps = 0,
+            flags = {"placeable-neutral", "not-on-map"},
+            subgroup = "defensive-structure-remnants",
+            order = "a-i-a2",
+            selection_box = {{-0.5, -0.5}, {0.5, 0.5}},
+            tile_width = 1,
+            tile_height = 1,
+            selectable_in_game = false,
+            time_before_removed = 60 * 60 * 15, -- 15 minutes
+            final_render_layer = "remnants",
+            remove_on_tile_placement = false,
+            animation = {
+                {
+                    filename = Constants.AssetModName .. "/graphics/entity/stasis_land_mine_remnants.png",
+                    x = 0,
+                    y = 0,
+                    width = 134,
+                    height = 130,
+                    frame_count = 1,
+                    axially_symmetrical = false,
+                    direction_count = 1,
+                    shift = util.by_pixel(1.5, 5),
+                    scale = 0.5
+                },
+                {
+                    filename = Constants.AssetModName .. "/graphics/entity/stasis_land_mine_remnants.png",
+                    x = 0,
+                    y = 130,
+                    width = 134,
+                    height = 130,
+                    frame_count = 1,
+                    axially_symmetrical = false,
+                    direction_count = 1,
+                    shift = util.by_pixel(1.5, 5),
+                    scale = 0.5
+                },
+                {
+                    filename = Constants.AssetModName .. "/graphics/entity/stasis_land_mine_remnants.png",
+                    x = 0,
+                    y = 260,
+                    width = 134,
+                    height = 130,
+                    frame_count = 1,
+                    axially_symmetrical = false,
+                    direction_count = 1,
+                    shift = util.by_pixel(1.5, 5),
+                    scale = 0.5
                 }
             }
         }
