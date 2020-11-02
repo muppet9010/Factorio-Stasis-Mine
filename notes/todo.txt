@@ -1,0 +1,8 @@
+Now:
+    - Item
+    - Recipe
+    - Technology
+    - Readme & demo video
+    - Make corpse
+
+Future:

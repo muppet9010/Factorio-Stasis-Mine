@@ -32,9 +32,24 @@ sourceEffect.start_scale = 0.5
 sourceEffect.fade_in_duration = 10
 sourceEffect.fade_away_duration = 30
 
+local dyingEffect = Utils.DeepCopy(targetEffect)
+dyingEffect.name = "stasis_mine-stasis_dying_effect"
+dyingEffect.duration = 30
+dyingEffect.start_scale = 0.5
+dyingEffect.fade_in_duration = 10
+dyingEffect.fade_away_duration = 10
+
+local dyingExplosion = Utils.DeepCopy(data.raw.explosion.explosion)
+dyingExplosion.name = "stasis_min-stasis_dying_explosion"
+dyingExplosion.animations = dyingExplosion.animations[1]
+dyingExplosion.animations.shift = {0, 1}
+dyingExplosion.animations.hr_version.shift = {0, 1}
+
 data:extend(
     {
         targetEffect,
-        sourceEffect
+        sourceEffect,
+        dyingEffect,
+        dyingExplosion
     }
 )
