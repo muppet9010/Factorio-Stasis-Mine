@@ -1,7 +1,4 @@
 Now:
-    - Item
-    - Recipe
-    - Technology
     - Readme & demo video
 
 Future:

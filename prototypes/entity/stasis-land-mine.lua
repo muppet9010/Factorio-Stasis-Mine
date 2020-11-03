@@ -16,7 +16,7 @@ data:extend(
                 "placeable-off-grid",
                 "not-on-map"
             },
-            minable = {mining_time = 0.5, result = "land-mine"},
+            minable = {mining_time = 0.5, result = "stasis-land-mine"},
             mined_sound = {filename = "__core__/sound/deconstruct-small.ogg"},
             max_health = 15,
             corpse = "stasis-land-mine-remnants",
