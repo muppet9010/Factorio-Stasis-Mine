@@ -25,7 +25,7 @@ StasisLandMine.OnScriptTriggerEffect = function(event)
 end
 
 StasisLandMine.ApplyStasisToTarget = function(entity)
-    -- Exclude some entities from being affected
+    -- Exclude some entities from being affected.
     if entity.destructible ~= true or entity.name == "stasis-land-mine" then
         return
     end
