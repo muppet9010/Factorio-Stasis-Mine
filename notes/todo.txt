@@ -1,4 +1,3 @@
 Now:
-    - Readme & demo video
 
 Future:
