@@ -1,10 +1,10 @@
 # Factorio-Stasis-Mine
 Adds a landmine that when triggered takes everything near by in to a temporary stasis, with them becoming frozen and immune from damage.
-Discovered as a byproduct of Effect Transmission (beacon) research gone wrong.
+Discovered as a by product of Effect Transmission (beacon) research gone wrong.
 
 ![Stasis Land Mine Example](https://media.giphy.com/media/feaLga7G7lBaGcluQt/giphy.gif)
 
-Spidertrons have bene hardened against these effects and so are unaffected by stasis. They also won't dont set of any mines of any type i the game by default.
+Spidertrons have been hardened against the stasis effect and so is unaffected. They also won't detonate enemy mines of any type as default in Factorio.
 
 Mod Settings
 -----------
