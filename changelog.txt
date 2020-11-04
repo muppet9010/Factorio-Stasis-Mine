@@ -1,11 +1,16 @@
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.1
-Date: 2020-11-XX
+Date: 2020-11-04
   Features:
   Changes:
+    - All entities are now affected, including trees, player characters, etc
+    - Trains are slowed down to near 0 movement speed. They will continue thier automatic path afterwards.
+    - Cars and tanks are frozen. They will continue at previous speed afterwards.
+    - Prevent all interaction with stasis'd entities where possible.
   Bugfixes:
     - Add missing stasis land mine remnant localisation
   Info:
+    - Spidertrons are listed as intentionally immune (mines naturally don't affect them).
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.0
 Date: 2020-11-03

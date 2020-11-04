@@ -4,6 +4,8 @@ Discovered as a byproduct of Effect Transmission (beacon) research gone wrong.
 
 ![Stasis Land Mine Example](https://media.giphy.com/media/feaLga7G7lBaGcluQt/giphy.gif)
 
+Spidertrons have bene hardened against these effects and so are unaffected by stasis. They also won't dont set of any mines of any type i the game by default.
+
 Mod Settings
 -----------
 
