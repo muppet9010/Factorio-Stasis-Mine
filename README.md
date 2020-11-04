@@ -9,7 +9,7 @@ Spidertrons have been hardened against the stasis effect and so is unaffected. T
 Mod Settings
 -----------
 
-- Control if everything or just opposing forces entities are frozen in status when the mine goes off.
+- Control if all or just opposing force's entities are frozen in stasis when a mine detonates.
 - Control the time things are frozen for. Defaults to 20 seconds
 
 Notes
