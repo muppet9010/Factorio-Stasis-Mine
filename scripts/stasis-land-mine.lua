@@ -26,7 +26,7 @@ StasisLandMine.OnScriptTriggerEffect = function(event)
 end
 
 StasisLandMine.ApplyStasisToTarget = function(entity)
-    -- Exclude some entities from being affected. Rocks are simple-entities.
+    -- Exclude some entities from being affected.
     if entity.name == "stasis-land-mine" or entity.type == "spider-leg" then
         return
     end
@@ -45,7 +45,10 @@ StasisLandMine.ApplyStasisToTarget = function(entity)
 
     entity.active = false
     entity.destructible = false
-    entity.health = 0
+    if entity.type ~= "tree" then
+        -- Tree's regain health so show a hitbox. Is annoying so exclude them from health change.
+        entity.health = 0
+    end
     if entity.operable ~= nil then
         entity.operable = false
     end
