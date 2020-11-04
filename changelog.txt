@@ -1,6 +1,14 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.1
+Date: 2020-11-XX
+  Features:
+  Changes:
+  Bugfixes:
+    - Add missing stasis land mine remnant localisation
+  Info:
+---------------------------------------------------------------------------------------------------
 Version: 1.0.0
-Date: 2020-xx-xx
+Date: 2020-11-03
   Features:
     - Initial Release
   Changes:
