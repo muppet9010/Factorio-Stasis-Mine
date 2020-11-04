@@ -14,6 +14,7 @@ StasisLandMine.OnLoad = function()
     Events.RegisterHandlerEvent(defines.events.on_script_trigger_effect, "StasisLandMine.OnScriptTriggerEffect", StasisLandMine.OnScriptTriggerEffect)
     EventScheduler.RegisterScheduler()
     EventScheduler.RegisterScheduledEventType("StasisLandMine.RemoveStasisFromTarget", StasisLandMine.RemoveStasisFromTarget)
+    EventScheduler.RegisterScheduledEventType("StasisLandMine.FreezeVehicle", StasisLandMine.FreezeVehicle)
 end
 
 StasisLandMine.OnStartup = function()
@@ -26,7 +27,7 @@ end
 
 StasisLandMine.ApplyStasisToTarget = function(entity)
     -- Exclude some entities from being affected.
-    if entity.destructible ~= true or entity.name == "stasis-land-mine" then
+    if entity.name == "stasis-land-mine" or entity.type == "spider-leg" then
         return
     end
 
@@ -36,13 +37,50 @@ StasisLandMine.ApplyStasisToTarget = function(entity)
         return
     end
 
+    local tick = game.tick
     global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
-    EventScheduler.ScheduleEvent(game.tick + global.stasisLandMine.stasisAffectTime, "StasisLandMine.RemoveStasisFromTarget", global.stasisLandMine.nextSchedulerId, {entity = entity, identifier = identifier})
-    global.stasisLandMine.affectedEntities[identifier] = {wasActive = entity.active, wasDestructible = entity.destructible, oldHealth = entity.health}
+    local unfreezeTick = tick + global.stasisLandMine.stasisAffectTime
+    EventScheduler.ScheduleEvent(unfreezeTick, "StasisLandMine.RemoveStasisFromTarget", global.stasisLandMine.nextSchedulerId, {entity = entity, identifier = identifier})
+    global.stasisLandMine.affectedEntities[identifier] = {unfreezeTick = unfreezeTick, wasActive = entity.active, wasDestructible = entity.destructible, oldHealth = entity.health, oldSpeed = entity.speed, oldOperable = entity.operable, oldMinable = entity.minable}
 
     entity.active = false
     entity.destructible = false
-    entity.health = 0
+    if entity.type ~= "tree" then
+        -- Tree's regain health so show a hitbox. Is annoying so exclude them from health change.
+        entity.health = 0
+    end
+    if entity.operable ~= nil then
+        entity.operable = false
+    end
+    if entity.minable ~= nil then
+        entity.minable = false
+    end
+    if entity.speed ~= nil and entity.type ~= "unit" then
+        StasisLandMine.FreezeVehicle({tick = tick, data = {entity = entity, unfreezeTick = unfreezeTick}})
+    end
+
+    -- Do here once the bug with moving smoke has been fixed. As at present things show the graphics of being affected that aren't.
+    --[[entity.surface.create_trivial_smoke {
+        name = "stasis_mine-stasis_target_impact_effect",
+        position = Utils.ApplyOffsetToPosition(entity.position, {x = 0, y = -0.5})
+    }--]]
+end
+
+StasisLandMine.FreezeVehicle = function(event)
+    local data, entity = event.data, event.data.entity
+    if entity == nil or (not entity.valid) then
+        return
+    end
+
+    if entity.train ~= nil then
+        entity.train.speed = 0
+    else
+        entity.speed = 0
+    end
+    if event.tick < (data.unfreezeTick - 1) then
+        global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
+        EventScheduler.ScheduleEvent(event.tick + 1, "StasisLandMine.FreezeVehicle", global.stasisLandMine.nextSchedulerId, data)
+    end
 end
 
 StasisLandMine.RemoveStasisFromTarget = function(event)
@@ -57,6 +95,19 @@ StasisLandMine.RemoveStasisFromTarget = function(event)
     entity.active = affectedEntityData.wasActive
     entity.destructible = affectedEntityData.wasDestructible
     entity.health = affectedEntityData.oldHealth
+    if affectedEntityData.oldSpeed ~= nil then
+        if entity.train ~= nil then
+            entity.train.speed = affectedEntityData.oldSpeed
+        else
+            entity.speed = affectedEntityData.oldSpeed
+        end
+    end
+    if affectedEntityData.oldOperable ~= nil then
+        entity.operable = affectedEntityData.oldOperable
+    end
+    if affectedEntityData.oldMinable ~= nil then
+        entity.minable = affectedEntityData.oldMinable
+    end
 end
 
 StasisLandMine.MakeEntityIdentifier = function(entity)

@@ -69,7 +69,6 @@ data:extend(
                                 type = "area",
                                 radius = 6,
                                 force = settings.startup["stasis_mine-stasis_force_effected"].value,
-                                entity_flags = {"placeable-player", "player-creation"},
                                 action_delivery = {
                                     type = "instant",
                                     target_effects = {
