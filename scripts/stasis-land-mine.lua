@@ -22,7 +22,9 @@ StasisLandMine.OnStartup = function()
 end
 
 StasisLandMine.OnScriptTriggerEffect = function(event)
-    StasisLandMine.ApplyStasisToTarget(event.target_entity)
+    if event.effect_id == "stasis-land-mine" and event.target_entity ~= nil and event.target_entity.valid then
+        StasisLandMine.ApplyStasisToTarget(event.target_entity)
+    end
 end
 
 StasisLandMine.ApplyStasisToTarget = function(entity)

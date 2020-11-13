@@ -1,4 +1,14 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.2
+Date: 2020-11-13
+  Features:
+  Changes:
+  Bugfixes:
+    - Filter on_script_trigger_effect events correctly.
+    - Handle missing or invalid entity from on_script_trigger_effect event.
+    - Fix technology name localisation bug.
+  Info:
+---------------------------------------------------------------------------------------------------
 Version: 1.0.1
 Date: 2020-11-04
   Features:
