@@ -22,8 +22,11 @@ StasisLandMine.OnStartup = function()
 end
 
 StasisLandMine.OnScriptTriggerEffect = function(event)
-    if event.effect_id == "stasis-land-mine" and event.target_entity ~= nil and event.target_entity.valid then
+    if event.effect_id == "stasis_land_mine_affected_target" and event.target_entity ~= nil and event.target_entity.valid then
         StasisLandMine.ApplyStasisToTarget(event.target_entity)
+    elseif event.effect_id == "stasis_land_mine_source" then
+        rendering.draw_light {sprite = "utility/light_medium", target = event.source_entity.position, surface = event.surface_index, time_to_live = 5, color = {r = 40, g = 210, b = 210}, scale = 2}
+        rendering.draw_light {sprite = "utility/light_medium", target = event.source_entity.position, surface = event.surface_index, time_to_live = 45, color = {r = 40, g = 210, b = 210}, scale = 3, intensity = 0.5}
     end
 end
 

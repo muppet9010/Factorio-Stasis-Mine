@@ -74,7 +74,7 @@ data:extend(
                                     target_effects = {
                                         {
                                             type = "script",
-                                            effect_id = "stasis-land-mine"
+                                            effect_id = "stasis_land_mine_affected_target"
                                         },
                                         {
                                             type = "create-trivial-smoke",
@@ -90,6 +90,10 @@ data:extend(
                             type = "create-trivial-smoke",
                             smoke_name = "stasis_mine-stasis_source_impact_effect",
                             starting_frame_deviation = 16
+                        },
+                        {
+                            type = "script",
+                            effect_id = "stasis_land_mine_source"
                         }
                     }
                 }
