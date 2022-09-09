@@ -51,6 +51,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity)
     entity.active = false
     entity.destructible = false
     if entity.type ~= "tree" then
+		-- Set health to 0 stops the biters attacking it if they try to path find through it. But they can't damage it and so get stuck and look stupid.
         -- Tree's regain health so show a hitbox. Is annoying so exclude them from health change.
         entity.health = 0
     end
@@ -64,7 +65,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity)
         StasisLandMine.FreezeVehicle({tick = tick, data = {entity = entity, unfreezeTick = unfreezeTick}})
     end
 
-    -- Do here once the bug with moving smoke has been fixed. As at present things show the graphics of being affected that aren't.
+    -- Do here based om feedback on bug: https://forums.factorio.com/viewtopic.php?f=182&t=91023 - SEE POST FOR FIX
     --[[entity.surface.create_trivial_smoke {
         name = "stasis_mine-stasis_target_impact_effect",
         position = Utils.ApplyOffsetToPosition(entity.position, {x = 0, y = -0.5})

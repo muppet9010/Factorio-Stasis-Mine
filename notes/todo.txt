@@ -1,5 +1,10 @@
 Now:
+    - Bug where biters attacked indestructible things fixed, this was likely linked to this mod: https://forums.factorio.com/viewtopic.php?f=182&t=93880&e=1&view=unread#unread
+
 
 Future:
+	- Add a mod startup setting to disable the tech and recipe. For use when you want the mod to add it's mines for just scripted use.
+	- Add a remote interface so the effect can be randomly triggered somewhere. Might just be a wrapper around the mines destination effect.
+	
 
 Notes:
