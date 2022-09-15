@@ -2,8 +2,10 @@
 Version: 20.0.4
 Date: 2022-09-XX
   Features:
+    - Add Stasis Rocket.
   Changes:
   Bugfixes:
+    - Entity affected blue light is now done within script and not on explosion. This means a new timed light won't be added to targets which are already in stasis, leading to the light lasting longer than the stasis effect. Also means the light won't appear on any excluded entity types: spider legs and other stasis land mines.
   Info:
     - Licence changed.
 ---------------------------------------------------------------------------------------------------

@@ -2,9 +2,9 @@ Now:
 
 
 Future:
-	- Add a rocket and grenade version.
+	- Add a version.
 	- Add a mod startup setting to disable the tech and recipe for each of the stasis item types. For use when you want the mod to add it's mines for just scripted use.
-	- Add a remote interface so the effect can be randomly triggered somewhere. Might just be a wrapper around the mines destination effect. Can we make this support custom sizes and affected targets?
+	- Add a remote interface so the effect can be randomly triggered somewhere. Might just be a wrapper around the mines destination effect. Can we easily make this support custom sizes and affected targets?
 
 
 Notes:

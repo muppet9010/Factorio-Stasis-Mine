@@ -74,7 +74,7 @@ data:extend(
                                     target_effects = {
                                         {
                                             type = "script",
-                                            effect_id = "stasis_land_mine_affected_target"
+                                            effect_id = "stasis_affected_target"
                                         }
                                     }
                                 }

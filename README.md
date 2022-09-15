@@ -4,7 +4,7 @@ Discovered as a by product of Effect Transmission (beacon) research gone wrong.
 
 ![Stasis Land Mine Example](https://media.giphy.com/media/feaLga7G7lBaGcluQt/giphy.gif)
 
-Spidertrons have been hardened against the stasis effect and so is unaffected. They also won't detonate enemy mines of any type as default in Factorio.
+Spidertrons have been hardened against the stasis effect and so is unaffected. They also don't detonate enemy mines of any type as default in Factorio.
 
 
 Mod Settings
@@ -19,3 +19,4 @@ Notes
 
 - Things already in a stasis can not be affected by another stasis triggering. Only "free" things can enter a stasis.
 - Inspired by the Protoss Stasis Trap in StarCraft 2, but adapted for Factorio.
+- Stasis mines are themselves immune from the stasis effect.

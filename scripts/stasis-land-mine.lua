@@ -45,11 +45,14 @@ end
 --- Called when any Lua Script Trigger effect occurs. Find if it's one of ours and call the handler if so.
 ---@param event EventData.on_script_trigger_effect
 StasisLandMine.OnScriptTriggerEffect = function(event)
-    if event.effect_id == "stasis_land_mine_affected_target" and event.target_entity ~= nil then
+    if event.effect_id == "stasis_affected_target" and event.target_entity ~= nil then
         StasisLandMine.ApplyStasisToTarget(event.target_entity)
     elseif event.effect_id == "stasis_land_mine_source" then
         rendering.draw_light({ sprite = "utility/light_medium", target = event.source_entity.position, surface = event.surface_index, time_to_live = 5, color = StasisLandMineLightColor, scale = 2.0 })
         rendering.draw_light({ sprite = "utility/light_medium", target = event.source_entity.position, surface = event.surface_index, time_to_live = 45, color = StasisLandMineLightColor, scale = 3.0, intensity = 0.5 })
+    elseif event.effect_id == "stasis_projectile_source" then
+        rendering.draw_light({ sprite = "utility/light_medium", target = event.target_entity.position, surface = event.surface_index, time_to_live = 5, color = StasisLandMineLightColor, scale = 2.0 })
+        rendering.draw_light({ sprite = "utility/light_medium", target = event.target_entity.position, surface = event.surface_index, time_to_live = 45, color = StasisLandMineLightColor, scale = 3.0, intensity = 0.5 })
     end
 end
 
