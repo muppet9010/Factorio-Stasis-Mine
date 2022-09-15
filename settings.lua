@@ -4,7 +4,7 @@ data:extend(
             name = "stasis_mine-stasis_force_effected",
             type = "string-setting",
             default_value = "all",
-            allowed_values = {"all", "enemy"},
+            allowed_values = { "all", "enemy" },
             setting_type = "startup",
             order = "1001"
         },
@@ -15,6 +15,27 @@ data:extend(
             minimum_value = 5,
             setting_type = "startup",
             order = "1002"
+        },
+        {
+            name = "stasis_mine-disable_stasis_mine",
+            type = "bool-setting",
+            default_value = false,
+            setting_type = "startup",
+            order = "2000"
+        },
+        {
+            name = "stasis_mine-disable_stasis_rocket",
+            type = "bool-setting",
+            default_value = false,
+            setting_type = "startup",
+            order = "2000"
+        },
+        {
+            name = "stasis_mine-disable_stasis_grenade",
+            type = "bool-setting",
+            default_value = false,
+            setting_type = "startup",
+            order = "2000"
         }
     }
 )

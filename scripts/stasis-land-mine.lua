@@ -40,6 +40,30 @@ end
 
 StasisLandMine.OnStartup = function()
     global.stasisLandMine.stasisAffectTime = tonumber(settings.startup["stasis_mine-stasis_time"].value) --[[@as uint]] * 60
+
+    -- Ensure any disabled stasis weapon types are applied to forces. They might have been enabled before and are now disabled.
+    if settings.startup["stasis_mine-disable_stasis_mine"].value --[[@as boolean]] then
+        StasisLandMine.DisableStasisWeaponType("stasis-land-mine")
+    end
+    if settings.startup["stasis_mine-disable_stasis_rocket"].value --[[@as boolean]] then
+        StasisLandMine.DisableStasisWeaponType("stasis-rocket")
+    end
+    if settings.startup["stasis_mine-disable_stasis_grenade"].value --[[@as boolean]] then
+        StasisLandMine.DisableStasisWeaponType("stasis-grenade")
+    end
+end
+
+---  Disable the technology and recipe of the stasis weapon name.
+---@param name string # The same name for both the technology and recipe.
+StasisLandMine.DisableStasisWeaponType = function(name)
+    for _, force in pairs(game.forces) do
+        -- Disable the technology if it exists.
+        local technology = force.technologies[name]
+        if technology ~= nil then
+            technology.researched = false -- Un-researches it if already done.
+            technology.enabled = false -- Stops it being researched again.
+        end
+    end
 end
 
 --- Called when any Lua Script Trigger effect occurs. Find if it's one of ours and call the handler if so.

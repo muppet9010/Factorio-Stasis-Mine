@@ -2,8 +2,9 @@
 Version: 20.0.4
 Date: 2022-09-XX
   Features:
-    - Add Stasis Rocket.
-    - Add Stasis Grenade.
+    - Added Stasis Rocket (temporary graphics).
+    - Added Stasis Grenade (temporary graphics).
+    - Added mod startup settings to disable each of the stasis weapon types. This disables the technologies, recipes and item lists for the stasis weapon. It doesn't remove the items so they can still be used via other mods in game.
   Changes:
   Bugfixes:
     - Entity affected blue light is now done within script and not on explosion. This means a new timed light won't be added to targets which are already in stasis, leading to the light lasting longer than the stasis effect. Also means the light won't appear on any excluded entity types: spider legs and other stasis land mines.

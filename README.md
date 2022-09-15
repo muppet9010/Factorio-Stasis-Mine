@@ -1,6 +1,7 @@
 # Factorio-Stasis-Mine
-Adds a landmine that when triggered takes everything near by in to a temporary stasis, with them becoming frozen and immune from damage.
+Adds weapons that when triggered takes everything near by in to a temporary stasis, with them becoming frozen and immune from damage.
 Discovered as a by product of Effect Transmission (beacon) research gone wrong.
+Weapon options include land mine, rocket and grenade.
 
 ![Stasis Land Mine Example](https://media.giphy.com/media/feaLga7G7lBaGcluQt/giphy.gif)
 
@@ -10,8 +11,9 @@ Spidertrons have been hardened against the stasis effect and so is unaffected. T
 Mod Settings
 -----------
 
-- Control if all or just opposing force's entities are frozen in stasis when a mine detonates.
+- Control if all or just opposing force's entities are frozen in stasis when a stasis weapon detonates.
 - Control the time things are frozen for. Defaults to 20 seconds
+- Mod startup settings to disable each of the stasis weapon types. This disables the technologies, recipes and item lists for the stasis weapon. It doesn't remove the items so they can still be used via other mods in game.
 
 
 Notes
@@ -19,4 +21,4 @@ Notes
 
 - Things already in a stasis can not be affected by another stasis triggering. Only "free" things can enter a stasis.
 - Inspired by the Protoss Stasis Trap in StarCraft 2, but adapted for Factorio.
-- Stasis mines are themselves immune from the stasis effect.
+- Stasis land mines are themselves immune from the stasis effect.
