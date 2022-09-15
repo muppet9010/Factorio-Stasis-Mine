@@ -90,11 +90,11 @@ StasisLandMine.ApplyStasisToTarget = function(entity)
         StasisLandMine.FreezeVehicle({ tick = tick, data = { entity = entity, unfreezeTick = unfreezeTick } })
     end
 
-    -- Do here based om feedback on bug: https://forums.factorio.com/viewtopic.php?f=182&t=91023 - SEE POST FOR FIX
-    --[[entity.surface.create_trivial_smoke {
+    -- Show the effect on the entity.
+    entity.surface.create_trivial_smoke {
         name = "stasis_mine-stasis_target_impact_effect",
-        position = Utils.ApplyOffsetToPosition(entity.position, {x = 0, y = -0.5})
-    }--]]
+        position = Utils.ApplyOffsetToPosition(entity.position, { x = 0, y = -0.5 })
+    }
 end
 
 --- Stop a vehicle caught in the blast and keep it frozen.

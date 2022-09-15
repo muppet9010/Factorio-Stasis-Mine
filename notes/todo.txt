@@ -1,5 +1,4 @@
 Now:
-    - Bug where biters attacked indestructible things fixed, this was likely linked to this mod: https://forums.factorio.com/viewtopic.php?f=182&t=93880
 
 
 Future:

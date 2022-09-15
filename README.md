@@ -6,11 +6,13 @@ Discovered as a by product of Effect Transmission (beacon) research gone wrong.
 
 Spidertrons have been hardened against the stasis effect and so is unaffected. They also won't detonate enemy mines of any type as default in Factorio.
 
+
 Mod Settings
 -----------
 
 - Control if all or just opposing force's entities are frozen in stasis when a mine detonates.
 - Control the time things are frozen for. Defaults to 20 seconds
+
 
 Notes
 ------
