@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 20.0.4
+Date: 2022-09-XX
+  Features:
+  Changes:
+  Bugfixes:
+  Info:
+    - Licence changed.
+---------------------------------------------------------------------------------------------------
 Version: 20.0.3
 Date: 2020-12-05
   Features:
@@ -23,7 +31,7 @@ Date: 2020-11-04
   Features:
   Changes:
     - All entities are now affected, including trees, player characters, etc
-    - Trains are slowed down to near 0 movement speed. They will continue thier automatic path afterwards.
+    - Trains are slowed down to near 0 movement speed. They will continue their automatic path afterwards.
     - Cars and tanks are frozen. They will continue at previous speed afterwards.
     - Prevent all interaction with stasis'd entities where possible.
   Bugfixes:
