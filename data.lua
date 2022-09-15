@@ -9,4 +9,8 @@ require("prototypes/projectile/stasis-rocket")
 require("prototypes/item/stasis-rocket")
 require("prototypes/recipe/stasis-rocket")
 
+require("prototypes/projectile/stasis-grenade")
+require("prototypes/item/stasis-grenade")
+require("prototypes/recipe/stasis-grenade")
+
 require("prototypes/technology/stasis-land-mine")

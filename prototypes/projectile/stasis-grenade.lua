@@ -1,8 +1,8 @@
 local Utils = require("utility.utils")
 
-local StasisRocket = Utils.DeepCopy(data.raw["projectile"]["rocket"])
-StasisRocket.name = "stasis-rocket"
-StasisRocket.action = {
+local StasisGrenade = Utils.DeepCopy(data.raw["projectile"]["grenade"])
+StasisGrenade.name = "stasis-grenade"
+StasisGrenade.action = {
     type = "direct",
     action_delivery = {
         type = "instant",
@@ -32,12 +32,12 @@ StasisRocket.action = {
             },
             {
                 type = "script",
-                effect_id = "stasis_rocket_source"
+                effect_id = "stasis_grenade_source"
             }
         }
     }
 }
 
 data:extend({
-    StasisRocket
+    StasisGrenade
 })

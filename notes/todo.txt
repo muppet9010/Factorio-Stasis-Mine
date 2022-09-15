@@ -2,8 +2,8 @@ Now:
 
 
 Future:
-	- Add a version.
 	- Add a mod startup setting to disable the tech and recipe for each of the stasis item types. For use when you want the mod to add it's mines for just scripted use.
+    - Make sure light is good, both in vanilla Factorio at night and in BattleFluffy scenario.
 	- Add a remote interface so the effect can be randomly triggered somewhere. Might just be a wrapper around the mines destination effect. Can we easily make this support custom sizes and affected targets?
 
 
