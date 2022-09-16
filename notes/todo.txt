@@ -2,8 +2,6 @@ Now:
 
 
 Future:
-    - Make sure light is good, both in vanilla Factorio at night and in BattleFluffy scenario.
-	- Add a remote interface so the effect can be randomly triggered somewhere. Might just be a wrapper around the mines destination effect. Can we easily make this support custom sizes and affected targets?
 
 
 Notes:

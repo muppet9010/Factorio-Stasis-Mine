@@ -75,8 +75,9 @@ StasisLandMine.OnScriptTriggerEffect = function(event)
         rendering.draw_light({ sprite = "utility/light_medium", target = event.source_entity.position, surface = event.surface_index, time_to_live = 5, color = StasisLandMineLightColor, scale = 2.0 })
         rendering.draw_light({ sprite = "utility/light_medium", target = event.source_entity.position, surface = event.surface_index, time_to_live = 45, color = StasisLandMineLightColor, scale = 3.0, intensity = 0.5 })
     elseif event.effect_id == "stasis_rocket_source" then
-        rendering.draw_light({ sprite = "utility/light_medium", target = event.target_entity.position, surface = event.surface_index, time_to_live = 5, color = StasisLandMineLightColor, scale = 2.0 })
-        rendering.draw_light({ sprite = "utility/light_medium", target = event.target_entity.position, surface = event.surface_index, time_to_live = 45, color = StasisLandMineLightColor, scale = 3.0, intensity = 0.5 })
+        -- CODE NOTE: `event.source_entity` is only populated if the target is still alive at the time of rocket detonation. `event.target_position` is always populated where the rocket explodes.
+        rendering.draw_light({ sprite = "utility/light_medium", target = event.target_position, surface = event.surface_index, time_to_live = 5, color = StasisLandMineLightColor, scale = 2.0 })
+        rendering.draw_light({ sprite = "utility/light_medium", target = event.target_position, surface = event.surface_index, time_to_live = 45, color = StasisLandMineLightColor, scale = 3.0, intensity = 0.5 })
     elseif event.effect_id == "stasis_grenade_source" then
         rendering.draw_light({ sprite = "utility/light_medium", target = event.target_position, surface = event.surface_index, time_to_live = 5, color = StasisLandMineLightColor, scale = 2.0 })
         rendering.draw_light({ sprite = "utility/light_medium", target = event.target_position, surface = event.surface_index, time_to_live = 45, color = StasisLandMineLightColor, scale = 3.0, intensity = 0.5 })
