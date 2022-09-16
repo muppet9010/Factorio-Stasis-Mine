@@ -4,16 +4,16 @@ data:extend(
     {
         {
             type = "technology",
-            name = "stasis-land-mine",
+            name = "stasis-grenade",
             icon_size = 96,
-            icon = Constants.AssetModName .. "/graphics/technology/stasis_land_mine.png",
+            icon = Constants.AssetModName .. "/graphics/technology/stasis_grenade.png",
             effects = {
                 {
                     type = "unlock-recipe",
-                    recipe = "stasis-land-mine"
+                    recipe = "stasis-grenade"
                 }
             },
-            prerequisites = { "land-mine", "effect-transmission" },
+            prerequisites = { "military-2", "effect-transmission" },
             unit = {
                 count = 100,
                 ingredients = {
@@ -25,7 +25,7 @@ data:extend(
                 },
                 time = 30
             },
-            enabled = not settings.startup["stasis_mine-disable_stasis_mine"].value,
+            enabled = not settings.startup["stasis_mine-disable_stasis_grenade"].value,
             order = "e-e"
         }
     }

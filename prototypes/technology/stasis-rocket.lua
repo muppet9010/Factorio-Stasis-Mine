@@ -4,16 +4,16 @@ data:extend(
     {
         {
             type = "technology",
-            name = "stasis-land-mine",
+            name = "stasis-rocket",
             icon_size = 96,
-            icon = Constants.AssetModName .. "/graphics/technology/stasis_land_mine.png",
+            icon = Constants.AssetModName .. "/graphics/technology/stasis_rocket.png",
             effects = {
                 {
                     type = "unlock-recipe",
-                    recipe = "stasis-land-mine"
+                    recipe = "stasis-rocket"
                 }
             },
-            prerequisites = { "land-mine", "effect-transmission" },
+            prerequisites = { "rocketry", "effect-transmission" },
             unit = {
                 count = 100,
                 ingredients = {
@@ -25,7 +25,7 @@ data:extend(
                 },
                 time = 30
             },
-            enabled = not settings.startup["stasis_mine-disable_stasis_mine"].value,
+            enabled = not settings.startup["stasis_mine-disable_stasis_rocket"].value,
             order = "e-e"
         }
     }

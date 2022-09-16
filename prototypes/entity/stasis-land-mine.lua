@@ -16,8 +16,8 @@ data:extend(
                 "placeable-off-grid",
                 "not-on-map"
             },
-            minable = {mining_time = 0.5, result = "stasis-land-mine"},
-            mined_sound = {filename = "__core__/sound/deconstruct-small.ogg"},
+            minable = { mining_time = 0.5, result = "stasis-land-mine" },
+            mined_sound = { filename = "__core__/sound/deconstruct-small.ogg" },
             max_health = 15,
             corpse = "stasis-land-mine-remnants",
             random_corpse_variation = true,
@@ -27,8 +27,8 @@ data:extend(
                 smoke_name = "stasis_mine-stasis_dying_effect",
                 starting_frame_deviation = 16
             },
-            collision_box = {{-0.4, -0.4}, {0.4, 0.4}},
-            selection_box = {{-0.5, -0.5}, {0.5, 0.5}},
+            collision_box = { { -0.4, -0.4 }, { 0.4, 0.4 } },
+            selection_box = { { -0.5, -0.5 }, { 0.5, 0.5 } },
             damaged_trigger_effect = landmineEntityRef.damaged_trigger_effect,
             open_sound = landmineEntityRef.open_sound,
             close_sound = landmineEntityRef.close_sound,
@@ -38,7 +38,7 @@ data:extend(
                 width = 64,
                 height = 85,
                 scale = 0.5,
-                shift = {0, -0.175}
+                shift = { 0, -0.175 }
             },
             picture_set = {
                 filename = Constants.AssetModName .. "/graphics/entity/stasis_land_mine_set.png",
@@ -46,7 +46,7 @@ data:extend(
                 width = 64,
                 height = 85,
                 scale = 0.5,
-                shift = {0, -0.175}
+                shift = { 0, -0.175 }
             },
             picture_set_enemy = {
                 filename = "__base__/graphics/entity/land-mine/land-mine-set-enemy.png",
@@ -74,13 +74,7 @@ data:extend(
                                     target_effects = {
                                         {
                                             type = "script",
-                                            effect_id = "stasis_land_mine_affected_target"
-                                        },
-                                        {
-                                            type = "create-trivial-smoke",
-                                            smoke_name = "stasis_mine-stasis_target_impact_effect",
-                                            offsets = {{0, -0.5}},
-                                            starting_frame_deviation = 16
+                                            effect_id = "stasis_affected_target"
                                         }
                                     }
                                 }
@@ -105,10 +99,10 @@ data:extend(
             icon = Constants.AssetModName .. "/graphics/item/stasis_land_mine.png",
             icon_size = 64,
             icon_mipmaps = 0,
-            flags = {"placeable-neutral", "not-on-map"},
+            flags = { "placeable-neutral", "not-on-map" },
             subgroup = "defensive-structure-remnants",
             order = "a-i-a2",
-            selection_box = {{-0.5, -0.5}, {0.5, 0.5}},
+            selection_box = { { -0.5, -0.5 }, { 0.5, 0.5 } },
             tile_width = 1,
             tile_height = 1,
             selectable_in_game = false,
