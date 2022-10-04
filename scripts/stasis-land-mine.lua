@@ -17,6 +17,7 @@ local EventScheduler = require("utility/event-scheduler")
 ---@class FreezeVehicleDetails
 ---@field entity LuaEntity
 ---@field unfreezeTick uint
+---@field vehicleType string
 
 ---@class UnfreezeEntityDetails
 ---@field entity LuaEntity
@@ -106,19 +107,16 @@ StasisLandMine.ApplyStasisToTarget = function(entity)
 
     entity.active = false
     entity.destructible = false
-    if entity.type ~= "tree" then
-        -- Set health to 0 stops the biters attacking it if they try to path find through it. But they can't damage it and so get stuck and look stupid.
-        -- Tree's regain health so show a hitbox. Is annoying so exclude them from health change.
-        entity.health = 0.0
-    end
     if entity.operable ~= nil then
         entity.operable = false
     end
     if entity.minable ~= nil then
         entity.minable = false
     end
-    if entity.speed ~= nil and entity.type ~= "unit" then
-        StasisLandMine.FreezeVehicle({ tick = tick, data = { entity = entity, unfreezeTick = unfreezeTick } })
+
+    local entity_type = entity.type
+    if entity_type == "locomotive" or entity_type == "cargo-wagon" or entity_type == "fluid-wagon" or entity_type == "artillery-wagon" or entity_type == "car" or entity_type == "spider-vehicle" then
+        StasisLandMine.FreezeVehicle({ tick = tick, data = { entity = entity, unfreezeTick = unfreezeTick, vehicleType = entity_type } })
     end
 
     -- Show the effect on the entity.
@@ -137,11 +135,16 @@ StasisLandMine.FreezeVehicle = function(event)
         return
     end
 
-    if entity.train ~= nil then
-        entity.train.speed = 0
-    else
-        entity.speed = 0.0
+    -- Trains need their speed controlling every tick. Other vehicle types are prevented from speed by being disabled.
+    -- All vehicles return to their pre-disabled speed when re-activated. For trains this can be a bit odd.
+    if data.vehicleType == "locomotive" or data.vehicleType == "cargo-wagon" or data.vehicleType == "fluid-wagon" or data.vehicleType == "artillery-wagon" then
+        local entity_train = entity.train
+        --local oldSpeed = entity_train.speed
+        --game.print(game.tick .. " = " .. oldSpeed)
+        --entity_train.speed = -oldSpeed
+        entity_train.speed = 0
     end
+
     if event.tick < (data.unfreezeTick - 1) then
         global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
         EventScheduler.ScheduleEvent(event.tick + 1, "StasisLandMine.FreezeVehicle", global.stasisLandMine.nextSchedulerId, data)
