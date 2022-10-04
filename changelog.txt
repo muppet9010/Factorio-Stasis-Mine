@@ -2,8 +2,11 @@
 Version: 20.0.5
 Date: 2022-10-XXX
   Features:
+    - Added option to enable/disable affect on Trains. Defaults to affecting trains.
   Changes:
+    - Trains are now entirely affected when one or more carriages are affected by stasis (mod setting depending). Now a fully affected train has stasis applied to all carriages in the train and it is fully stopped and prevented from moving for the duration of the effect. This is as a partially affected train doesn't behave nicely and would have lots of edge cases.
   Bugfixes:
+    - Trains are no longer mostly stopped.
   Info:
 ---------------------------------------------------------------------------------------------------
 Version: 20.0.4

@@ -39,3 +39,15 @@ data:extend(
         }
     }
 )
+
+data:extend(
+    {
+        {
+            name = "stasis_mine-trains_affected",
+            type = "bool-setting",
+            default_value = true,
+            setting_type = "runtime-global",
+            order = "1001"
+        }
+    }
+)

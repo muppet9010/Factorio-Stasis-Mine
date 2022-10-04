@@ -9,14 +9,17 @@ local EventScheduler = require("utility/event-scheduler")
 ---@field unfreezeTick uint
 ---@field wasActive boolean
 ---@field wasDestructible boolean
----@field oldSpeed float
 ---@field oldOperable boolean
 ---@field oldMinable boolean
+---@field frozenVehicleDetails FreezeVehicleDetails|nil
 
 ---@class FreezeVehicleDetails
 ---@field entity LuaEntity
 ---@field unfreezeTick uint
 ---@field vehicleType string
+---@field affectedEntityDetails AffectedEntityDetails
+---@field carriageOldSpeed double|nil
+---@field trainOldSpeed double|nil
 
 ---@class UnfreezeEntityDetails
 ---@field entity LuaEntity
@@ -26,9 +29,10 @@ local StasisLandMineLightColor = { r = 40, g = 210, b = 210 } ---@type Color.1
 
 StasisLandMine.CreateGlobals = function()
     global.stasisLandMine = global.stasisLandMine or {} ---@class Global_StasisLandMine # Used by the StasisLandMine for its own global data.
-    global.stasisLandMine.affectedEntities = global.stasisLandMine.affectedEntities or {} ---@type table<Identifier ,AffectedEntityDetails>
+    global.stasisLandMine.affectedEntities = global.stasisLandMine.affectedEntities or {} ---@type table<Identifier, AffectedEntityDetails>
     global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId or 0 ---@type uint
     global.stasisLandMine.stasisAffectTime = global.stasisLandMine.stasisAffectTime or 0 ---@type uint
+    global.stasisLandMine.frozenTrainIds = global.stasisLandMine.frozenTrainIds or {} ---@type table<uint, boolean>
 end
 
 StasisLandMine.OnLoad = function()
@@ -53,6 +57,12 @@ StasisLandMine.OnStartup = function()
     end
 end
 
+StasisLandMine.OnSettingChanged = function(event)
+    if event == nil or event.setting == "stasis_mine-trains_affected" then
+        global.modSettings["trains_affected"] = settings.global["stasis_mine-trains_affected"].value --[[@as boolean]]
+    end
+end
+
 ---  Disable the technology and recipe of the stasis weapon name.
 ---@param name string # The same name for both the technology and recipe.
 StasisLandMine.DisableStasisWeaponType = function(name)
@@ -70,7 +80,7 @@ end
 ---@param event EventData.on_script_trigger_effect
 StasisLandMine.OnScriptTriggerEffect = function(event)
     if event.effect_id == "stasis_affected_target" and event.target_entity ~= nil then
-        StasisLandMine.ApplyStasisToTarget(event.target_entity)
+        StasisLandMine.ApplyStasisToTarget(event.target_entity, event.tick)
     elseif event.effect_id == "stasis_land_mine_source" then
         rendering.draw_light({ sprite = "utility/light_medium", target = event.source_entity.position, surface = event.surface_index, time_to_live = 5, color = StasisLandMineLightColor, scale = 2.0 })
         rendering.draw_light({ sprite = "utility/light_medium", target = event.source_entity.position, surface = event.surface_index, time_to_live = 45, color = StasisLandMineLightColor, scale = 3.0, intensity = 0.5 })
@@ -86,11 +96,17 @@ end
 
 --- Apply the stasis effect to an entity caught in the blast.
 ---@param entity LuaEntity
-StasisLandMine.ApplyStasisToTarget = function(entity)
+---@param tick uint
+StasisLandMine.ApplyStasisToTarget = function(entity, tick)
     local entity_type = entity.type
 
     -- Exclude some entities from being affected.
     if entity.name == "stasis-land-mine" or entity_type == "spider-leg" then
+        return
+    end
+
+    -- Exclude trains if Mod Setting dictates so.
+    if not global.modSettings["trains_affected"] and (entity_type == "locomotive" or entity_type == "cargo-wagon" or entity_type == "fluid-wagon" or entity_type == "artillery-wagon") then
         return
     end
 
@@ -100,14 +116,14 @@ StasisLandMine.ApplyStasisToTarget = function(entity)
         return
     end
 
-    local tick = game.tick
     global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
     local unfreezeTick = tick + global.stasisLandMine.stasisAffectTime
     EventScheduler.ScheduleEvent(unfreezeTick, "StasisLandMine.RemoveStasisFromTarget", global.stasisLandMine.nextSchedulerId, { entity = entity, identifier = identifier })
-    global.stasisLandMine.affectedEntities[identifier] = { unfreezeTick = unfreezeTick, wasActive = entity.active, wasDestructible = entity.destructible, oldSpeed = entity.speed, oldOperable = entity.operable, oldMinable = entity.minable }
+    local affectedEntityDetails = { unfreezeTick = unfreezeTick, wasActive = entity.active, wasDestructible = entity.destructible, oldOperable = entity.operable, oldMinable = entity.minable }
+    global.stasisLandMine.affectedEntities[identifier] = affectedEntityDetails
 
     -- Disable everything other than train carriages. As when train carriages become active again they have weird effects on the overall trains speed and direction.
-    if entity_type ~= "locomotive" or entity_type == "cargo-wagon" or entity_type == "fluid-wagon" or entity_type == "artillery-wagon" then
+    if entity_type ~= "locomotive" and entity_type ~= "cargo-wagon" and entity_type ~= "fluid-wagon" and entity_type ~= "artillery-wagon" then
         entity.active = false
     end
     entity.destructible = false
@@ -116,7 +132,8 @@ StasisLandMine.ApplyStasisToTarget = function(entity)
 
     -- Freeze all vehicle types specially.
     if entity_type == "locomotive" or entity_type == "cargo-wagon" or entity_type == "fluid-wagon" or entity_type == "artillery-wagon" or entity_type == "car" or entity_type == "spider-vehicle" then
-        StasisLandMine.FreezeVehicle({ tick = tick, data = { entity = entity, unfreezeTick = unfreezeTick, vehicleType = entity_type } })
+        affectedEntityDetails.frozenVehicleDetails = { entity = entity, unfreezeTick = unfreezeTick, vehicleType = entity_type, affectedEntityDetails = affectedEntityDetails }
+        StasisLandMine.FreezeVehicle({ tick = tick, data = affectedEntityDetails.frozenVehicleDetails })
     end
 
     -- Show the effect on the entity.
@@ -124,27 +141,6 @@ StasisLandMine.ApplyStasisToTarget = function(entity)
         name = "stasis_mine-stasis_target_impact_effect",
         position = Utils.ApplyOffsetToPosition(entity.position, { x = 0, y = -0.5 })
     }
-end
-
---- Stop a vehicle caught in the blast and keep it frozen.
----@param event any
-StasisLandMine.FreezeVehicle = function(event)
-    local data = event.data ---@type FreezeVehicleDetails
-    local entity = data.entity
-    if entity == nil or (not entity.valid) then
-        return
-    end
-
-    -- Trains need their speed controlling every tick. Other vehicle types are prevented from speed by being disabled.
-    -- All vehicles return to their pre-disabled speed when re-activated. For trains this can be a bit odd.
-    if data.vehicleType == "locomotive" or data.vehicleType == "cargo-wagon" or data.vehicleType == "fluid-wagon" or data.vehicleType == "artillery-wagon" then
-        entity.train.speed = 0
-    end
-
-    if event.tick < (data.unfreezeTick - 1) then
-        global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
-        EventScheduler.ScheduleEvent(event.tick + 1, "StasisLandMine.FreezeVehicle", global.stasisLandMine.nextSchedulerId, data)
-    end
 end
 
 --- Remove the stasis effect from a target.
@@ -161,20 +157,77 @@ StasisLandMine.RemoveStasisFromTarget = function(event)
 
     entity.active = affectedEntityData.wasActive
     entity.destructible = affectedEntityData.wasDestructible
-    if affectedEntityData.oldSpeed ~= nil then
-        if entity.train ~= nil then
-            entity.train.speed = affectedEntityData.oldSpeed
-        else
-            entity.speed = affectedEntityData.oldSpeed
-        end
-    end
     if affectedEntityData.oldOperable ~= nil then
         entity.operable = affectedEntityData.oldOperable
     end
     if affectedEntityData.oldMinable ~= nil then
         entity.minable = affectedEntityData.oldMinable
     end
+
+    if affectedEntityData.frozenVehicleDetails ~= nil then
+        StasisLandMine.UnFreezeVehicle(affectedEntityData.frozenVehicleDetails)
+    end
 end
+
+--- Stop a vehicle caught in the blast and keep it frozen.
+---@param event any
+StasisLandMine.FreezeVehicle = function(event)
+    local data = event.data ---@type FreezeVehicleDetails
+    local entity = data.entity
+    if entity == nil or (not entity.valid) then
+        return
+    end
+
+    if data.vehicleType == "locomotive" or data.vehicleType == "cargo-wagon" or data.vehicleType == "fluid-wagon" or data.vehicleType == "artillery-wagon" then
+        -- Train carriage handling. Needs special handling as we are manipulating every carriage in the train and not just the carriage entity directly affect by the area of effect.
+        local train = entity.train ---@cast train - nil
+        local train_id = train.id
+
+        -- Only do this for one carriage in a train.
+        if not global.stasisLandMine.frozenTrainIds[train_id] then
+
+            -- Stop the train after capturing its speed.
+            data.carriageOldSpeed = entity.speed
+            data.trainOldSpeed = train.speed
+            train.speed = 0
+
+            -- Freeze every carriage in the train.
+            global.stasisLandMine.frozenTrainIds[train_id] = true
+            for _, carriage in pairs(train.carriages) do
+                if carriage ~= entity then
+                    StasisLandMine.ApplyStasisToTarget(carriage, event.tick)
+                end
+            end
+        end
+    else
+        -- All non train vehicles return nicely to their pre-disabled speed when re-activated.
+    end
+
+    if event.tick < (data.unfreezeTick - 1) then
+        global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
+        EventScheduler.ScheduleEvent(event.tick + 1, "StasisLandMine.FreezeVehicle", global.stasisLandMine.nextSchedulerId, data)
+    end
+end
+
+--- Release a vehicle caught in the blast from being frozen.
+---@param frozenVehicleDetails FreezeVehicleDetails
+StasisLandMine.UnFreezeVehicle = function(frozenVehicleDetails)
+    if frozenVehicleDetails.trainOldSpeed ~= nil then
+        -- Is the primary frozen carriage for the train.
+        local train = frozenVehicleDetails.entity.train ---@cast train - nil
+
+        -- Set the trains speed. Check its the right direction with this primary carriages speed.
+        train.speed = frozenVehicleDetails.trainOldSpeed
+        if frozenVehicleDetails.entity.speed ~= frozenVehicleDetails.carriageOldSpeed then
+            train.speed = -frozenVehicleDetails.trainOldSpeed
+        end
+
+        -- Remove the flag that the train is frozen as it will all be unfrozen together.
+        global.stasisLandMine.frozenTrainIds[train.id] = nil
+    end
+end
+
+
 
 --- Get a unique ID for an entity. Either its unit_number or a string with unique details.
 ---@param entity LuaEntity

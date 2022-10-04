@@ -1,6 +1,7 @@
 local StasisLandMine = require("scripts/stasis-land-mine")
 
 local function CreateGlobals()
+    global.modSettings = global.modSettings or {} ---@class ModSettings
     StasisLandMine.CreateGlobals()
 end
 
@@ -10,9 +11,7 @@ local function OnLoad()
 end
 
 local function OnSettingChanged(event)
-    --if event == nil or event.setting == "xxxxx" then
-    --	local x = tonumber(settings.global["xxxxx"].value)
-    --end
+    StasisLandMine.OnSettingChanged(event)
 end
 
 local function OnStartup()

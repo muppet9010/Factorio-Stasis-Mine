@@ -1,14 +1,21 @@
 Now:
-	- Bug: trains don't stay truly stopped (manual and automatic). They manage to speed up a tiny bit every tick from 0. Cars do stay at 0 speed.
+    - Add: Trains - As disabled train carriages still let the train move and just setting its speed every tick doesn't truly stop the train we will need to either:
+        - Add a non movable train carriage to the end of the train. Then remove it when its finished so the train can move again. The issue here is we are messing with the train id, also by adding a carriage we risk joining the train to other unrelated carriages. Have to do the trick to avoid it losing station reservation and schedule as this will make a new train which will go to automatic.
+        - Look at putting in some alternative fuel with such a negative value that the locomotive has no acceleration ability. As the vehicle is un-openable the player can't put back proper fuels to let it move. Not sure if fuel can achieve this.
+        - Maybe place some indestructible thing in front of and behind the train so that it physically can't move. As if its really small it would look like part of the train if anything collides with it. Maybe even on top of the train carriages so they collide with it?
+    - Add: Trains - Need to look at making sure the carriages can't be disconnected or connected to other trains carriages while the effect is in place.
+
 
 
 Future:
 	- Add: mod startup setting to set the size of the effect. We can just scale up things in the data stage.
 	- Add: add smoother looking graphics for grenade and rocket, although not quite sure what the design should be, hence current temporary graphics.
 	- Add: setting if spidertrons are immune. I can't get the spider from the leg, so the area damage effect isn't going to work. Will need to do a surface scan around the effect area for just spider vehicles, but this would mean if a leg is in range, but the body isn't then the spider escapes. A larger area check may find spiders that don't have legs in the area. So maybe log the legs found and then do a larger spider search and then see which one(s) the leg(s) belong too.
-	- Add: Lock players in/out of stasis affected vehicles. Rather than by permission just check if every tick and put them back in.
+	- Add: Lock players in/out of stasis affected vehicles. Rather than by permission just check if every tick and put them back in/out. Also show a message telling the player that they can't enter/exit while the stasis effect is active.
 	- Bug: add to info.lua and mod portal entry that its landmines, rockets and grenades.
 	- Bug: hide each weapon type from bonuses if it is disabled.
+    - Add: Look at making the stasis graphic per entity scale based on the entities collision box.
+
 
 
 Notes:
