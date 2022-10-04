@@ -9,7 +9,6 @@ local EventScheduler = require("utility/event-scheduler")
 ---@field unfreezeTick uint
 ---@field wasActive boolean
 ---@field wasDestructible boolean
----@field oldHealth float
 ---@field oldSpeed float
 ---@field oldOperable boolean
 ---@field oldMinable boolean
@@ -88,8 +87,10 @@ end
 --- Apply the stasis effect to an entity caught in the blast.
 ---@param entity LuaEntity
 StasisLandMine.ApplyStasisToTarget = function(entity)
+    local entity_type = entity.type
+
     -- Exclude some entities from being affected.
-    if entity.name == "stasis-land-mine" or entity.type == "spider-leg" then
+    if entity.name == "stasis-land-mine" or entity_type == "spider-leg" then
         return
     end
 
@@ -103,18 +104,13 @@ StasisLandMine.ApplyStasisToTarget = function(entity)
     global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
     local unfreezeTick = tick + global.stasisLandMine.stasisAffectTime
     EventScheduler.ScheduleEvent(unfreezeTick, "StasisLandMine.RemoveStasisFromTarget", global.stasisLandMine.nextSchedulerId, { entity = entity, identifier = identifier })
-    global.stasisLandMine.affectedEntities[identifier] = { unfreezeTick = unfreezeTick, wasActive = entity.active, wasDestructible = entity.destructible, oldHealth = entity.health, oldSpeed = entity.speed, oldOperable = entity.operable, oldMinable = entity.minable }
+    global.stasisLandMine.affectedEntities[identifier] = { unfreezeTick = unfreezeTick, wasActive = entity.active, wasDestructible = entity.destructible, oldSpeed = entity.speed, oldOperable = entity.operable, oldMinable = entity.minable }
 
     entity.active = false
     entity.destructible = false
-    if entity.operable ~= nil then
-        entity.operable = false
-    end
-    if entity.minable ~= nil then
-        entity.minable = false
-    end
+    entity.operable = false
+    entity.minable = false
 
-    local entity_type = entity.type
     if entity_type == "locomotive" or entity_type == "cargo-wagon" or entity_type == "fluid-wagon" or entity_type == "artillery-wagon" or entity_type == "car" or entity_type == "spider-vehicle" then
         StasisLandMine.FreezeVehicle({ tick = tick, data = { entity = entity, unfreezeTick = unfreezeTick, vehicleType = entity_type } })
     end
@@ -165,7 +161,6 @@ StasisLandMine.RemoveStasisFromTarget = function(event)
 
     entity.active = affectedEntityData.wasActive
     entity.destructible = affectedEntityData.wasDestructible
-    entity.health = affectedEntityData.oldHealth
     if affectedEntityData.oldSpeed ~= nil then
         if entity.train ~= nil then
             entity.train.speed = affectedEntityData.oldSpeed
