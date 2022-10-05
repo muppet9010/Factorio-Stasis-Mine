@@ -1,5 +1,4 @@
 Now:
-    - Add: Trains - Need to look at making sure the carriages can't be disconnected or connected to other trains carriages while the effect is in place. I think a disabled and blocked carriage can't be connected too (in testing), but players can disconnect a frozen train. So maybe we just cache the connections of each carriage and then re-connect those that are needed at the unfreeze time. Do need to check how train speed handles this, as we may need to reset the speed after re-connecting the train. Also this may mess up any station reservations, although that on the player as this happens when disconnecting train carriages for a moving scheduled train anyway.
 
 
 

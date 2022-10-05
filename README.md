@@ -24,6 +24,7 @@ Notes
 - Things already in a stasis can not be affected by another stasis triggering. Only "free" things can enter a stasis.
 - Inspired by the Protoss Stasis Trap in StarCraft 2, but adapted for Factorio.
 - Stasis land mines are themselves immune from the stasis effect.
+- When a rolling stock in a train affected by stasis is disconnected, after the train leaves stasis the same effects happen as when a regular train has a carriage disconnected. The train parts will each be set to manual losing any station reservation and if the train is moving it may crash in to the other parts of itself.
 
 
 
