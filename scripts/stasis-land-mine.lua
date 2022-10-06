@@ -22,6 +22,8 @@ local EventScheduler = require("utility/event-scheduler")
 ---@field carriageOldSpeed double|nil
 ---@field trainOldSpeed double|nil
 ---@field trainBlockerEntity LuaEntity|nil
+---@field driver LuaPlayer|nil
+---@field passenger LuaPlayer|nil
 
 ---@class UnfreezeEntityDetails
 ---@field entity LuaEntity
@@ -172,8 +174,8 @@ end
 ---@param event any
 StasisLandMine.FreezeVehicle = function(event)
     local frozenVehicleDetails = event.data ---@type FreezeVehicleDetails
-    local entity = frozenVehicleDetails.entity
-    if entity == nil or (not entity.valid) then
+    local vehicleEntity = frozenVehicleDetails.entity
+    if vehicleEntity == nil or (not vehicleEntity.valid) then
         return
     end
 
@@ -182,32 +184,118 @@ StasisLandMine.FreezeVehicle = function(event)
         frozenVehicleDetails.initialFreeze = false
         if frozenVehicleDetails.vehicleType == "locomotive" or frozenVehicleDetails.vehicleType == "cargo-wagon" or frozenVehicleDetails.vehicleType == "fluid-wagon" or frozenVehicleDetails.vehicleType == "artillery-wagon" then
             -- Train carriage handling. Needs special handling as we are manipulating every carriage in the train and not just the carriage entity directly affect by the area of effect.
-            local train = entity.train ---@cast train - nil
+            local train = vehicleEntity.train ---@cast train - nil
             local train_id = train.id
 
             -- Only do this for one carriage in a train.
             if not global.stasisLandMine.frozenTrainIds[train_id] then
 
                 -- Stop the train after capturing its speed.
-                frozenVehicleDetails.carriageOldSpeed = entity.speed
+                frozenVehicleDetails.carriageOldSpeed = vehicleEntity.speed
                 frozenVehicleDetails.trainOldSpeed = train.speed
                 train.speed = 0
 
                 -- Freeze every carriage in the train.
                 global.stasisLandMine.frozenTrainIds[train_id] = true
                 for _, carriage in pairs(train.carriages) do
-                    if carriage ~= entity then
+                    if carriage ~= vehicleEntity then
                         StasisLandMine.ApplyStasisToTarget(carriage, event.tick)
                     end
                 end
             end
 
             -- Each train carriage that is frozen needs to create and record its own blocker entity.
-            local blockerEntity = entity.surface.create_entity({ name = "stasis-train-blocker", position = entity.position })
-            blockerEntity.destructible = false
-            frozenVehicleDetails.trainBlockerEntity = blockerEntity
+            frozenVehicleDetails.trainBlockerEntity = StasisLandMine.CreateFrozenTrainCarriageBlocker(vehicleEntity)
+
+            -- Capture if there's a driver in the vehicle. Trains only have 1 player slot.
+            local driver = vehicleEntity.get_driver()
+            if driver ~= nil then
+                if driver.is_player() then
+                    ---@cast driver LuaPlayer
+                    frozenVehicleDetails.driver = driver
+                else
+                    ---@cast driver LuaEntity
+                    frozenVehicleDetails.driver = driver.player
+                end
+            end
         else
             -- All non train vehicles return nicely to their pre-disabled speed when re-activated.
+
+            -- Capture if there's a driver and passenger in the vehicle. Cars and spiders always have 2 player slots.
+            local driver = vehicleEntity.get_driver()
+            if driver ~= nil then
+                if driver.is_player() then
+                    ---@cast driver LuaPlayer
+                    frozenVehicleDetails.driver = driver
+                else
+                    ---@cast driver LuaEntity
+                    frozenVehicleDetails.driver = driver.player
+                end
+            end
+            local passenger = vehicleEntity.get_passenger()
+            if passenger ~= nil then
+                if passenger.is_player() then
+                    ---@cast passenger LuaPlayer
+                    frozenVehicleDetails.passenger = passenger
+                else
+                    ---@cast passenger LuaEntity
+                    frozenVehicleDetails.passenger = passenger.player
+                end
+            end
+        end
+    end
+
+    -- Check that any players in the vehicles are as they were at the start (not got in/out).
+    -- Some disabled vehicles will prevent players from getting out, but it's patchy so just check all.
+    if frozenVehicleDetails.driver ~= nil then
+        -- There should still be a player in the vehicle, if there isn't return them.
+        if vehicleEntity.get_driver() == nil then
+            -- No player in vehicle, assuming the expected player has a character then set them back to the vehicle if they're close. If they don't have a character they are dead or something weird and we shouldn't set them back in to the vehicle. We check if close as this avoids us undoing any long distance teleport, so should just limit us to if the player got out of the vehicle as the vehicle will be stationary.
+            local expectedDriverCharacter = frozenVehicleDetails.driver.character
+            if expectedDriverCharacter ~= nil then
+                if Utils.GetDistance(vehicleEntity.position, expectedDriverCharacter.position) < 5 then
+                    -- Player is near by so put them back in to the drivers seat.
+                    vehicleEntity.set_driver(expectedDriverCharacter)
+                    vehicleEntity.surface.create_entity({ name = "flying-text", position = vehicleEntity.position, text = { "message.stasis_mine-player_can_not_leave_vehicle" }, render_player_index = frozenVehicleDetails.driver.index })
+                else
+                    -- Player is too far away, so forget they where the driver. Otherwise if they walk near the vehicle they will be snapped back in to it.
+                    frozenVehicleDetails.driver = nil
+                end
+            end
+        end
+    else
+        -- There shouldn't be a player in the vehicle, if there is eject them.
+        local currentDriver = vehicleEntity.get_driver()
+        if currentDriver ~= nil then
+            local currentDriverCharacter
+            if not currentDriver.is_player() then
+                ---@cast currentDriver LuaEntity
+                currentDriverCharacter = currentDriver
+                currentDriver = currentDriver.player
+            else
+                ---@cast currentDriver LuaPlayer
+                currentDriverCharacter = currentDriver.character
+            end ---@cast currentDriver - nil
+            if currentDriverCharacter ~= nil then
+                -- For a player to be ejected from a train carriage the train carriage can't have a blocker directly under its center. So we remove the blocker and then return it after ejecting the player.
+                if frozenVehicleDetails.trainBlockerEntity ~= nil then
+                    frozenVehicleDetails.trainBlockerEntity.destroy({ raise_destroy = false })
+                end
+                currentDriver.driving = false
+                if frozenVehicleDetails.trainBlockerEntity ~= nil then
+                    frozenVehicleDetails.trainBlockerEntity = StasisLandMine.CreateFrozenTrainCarriageBlocker(vehicleEntity)
+                end
+                vehicleEntity.surface.create_entity({ name = "flying-text", position = vehicleEntity.position, text = { "message.stasis_mine-player_can_not_enter_vehicle" }, render_player_index = currentDriver.index })
+            end
+        end
+    end
+    if frozenVehicleDetails.vehicleType == "car" or frozenVehicleDetails.vehicleType == "spider-vehicle" then
+        -- TODO: this should be the same as driver, so functionise it.
+        -- Only these vehicle types can have passengers.
+        if frozenVehicleDetails.passenger ~= nil then
+            -- There should still be a player in the vehicle, if there isn't return them.
+        else
+            -- There shouldn't be a player in the vehicle, if there is eject them.
         end
     end
 
@@ -215,6 +303,19 @@ StasisLandMine.FreezeVehicle = function(event)
         global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
         EventScheduler.ScheduleEvent(event.tick + 1, "StasisLandMine.FreezeVehicle", global.stasisLandMine.nextSchedulerId, frozenVehicleDetails)
     end
+end
+
+--- Create the blocker entity for a frozen train carriage.
+---@param vehicleEntity LuaEntity
+---@return LuaEntity|nil blockerEntity
+StasisLandMine.CreateFrozenTrainCarriageBlocker = function(vehicleEntity)
+    local blockerEntity = vehicleEntity.surface.create_entity({ name = "stasis-train-blocker", position = vehicleEntity.position })
+    if blockerEntity == nil then
+        -- TODO: add a warning that the train blocker failed to create.
+        return nil
+    end
+    blockerEntity.destructible = false
+    return blockerEntity
 end
 
 --- Release a vehicle caught in the blast from being frozen.
