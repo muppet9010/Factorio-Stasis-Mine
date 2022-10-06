@@ -9,7 +9,7 @@ local StasisRocket = {
     icon_mipmaps = 0,
     ammo_type =
     {
-        category = "rocket",
+        category = "stasis",
         action =
         {
             type = "direct",

@@ -16,13 +16,12 @@ local StasisGrenade = {
         {
             type = "projectile",
             activation_type = "throw",
-            ammo_category = "stasis-grenade",
             cooldown = 30,
             projectile_creation_distance = 0.6,
             range = 15,
             ammo_type =
             {
-                category = "grenade",
+                category = "stasis",
                 target_type = "position",
                 action =
                 {

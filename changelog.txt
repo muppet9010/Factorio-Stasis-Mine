@@ -8,6 +8,7 @@ Date: 2022-10-XXX
     - Players are not able to get in/out of vehicles in stasis. This is managed by script and not permission groups.
   Bugfixes:
     - Trains are no longer mostly stopped. They are fully stopped.
+    - Stasis weapons don't show on bonuses lists as they aren't affected by weapon upgrades.
   Info:
 ---------------------------------------------------------------------------------------------------
 Version: 20.0.4
