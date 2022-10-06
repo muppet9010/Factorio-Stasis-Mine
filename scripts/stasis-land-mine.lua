@@ -2,6 +2,7 @@ local StasisLandMine = {}
 local Events = require("utility/events")
 local Utils = require("utility/utils")
 local EventScheduler = require("utility/event-scheduler")
+local Logging = require("utility.logging")
 
 ---@alias Identifier uint|string
 
@@ -247,56 +248,10 @@ StasisLandMine.FreezeVehicle = function(event)
 
     -- Check that any players in the vehicles are as they were at the start (not got in/out).
     -- Some disabled vehicles will prevent players from getting out, but it's patchy so just check all.
-    if frozenVehicleDetails.driver ~= nil then
-        -- There should still be a player in the vehicle, if there isn't return them.
-        if vehicleEntity.get_driver() == nil then
-            -- No player in vehicle, assuming the expected player has a character then set them back to the vehicle if they're close. If they don't have a character they are dead or something weird and we shouldn't set them back in to the vehicle. We check if close as this avoids us undoing any long distance teleport, so should just limit us to if the player got out of the vehicle as the vehicle will be stationary.
-            local expectedDriverCharacter = frozenVehicleDetails.driver.character
-            if expectedDriverCharacter ~= nil then
-                if Utils.GetDistance(vehicleEntity.position, expectedDriverCharacter.position) < 5 then
-                    -- Player is near by so put them back in to the drivers seat.
-                    vehicleEntity.set_driver(expectedDriverCharacter)
-                    vehicleEntity.surface.create_entity({ name = "flying-text", position = vehicleEntity.position, text = { "message.stasis_mine-player_can_not_leave_vehicle" }, render_player_index = frozenVehicleDetails.driver.index })
-                else
-                    -- Player is too far away, so forget they where the driver. Otherwise if they walk near the vehicle they will be snapped back in to it.
-                    frozenVehicleDetails.driver = nil
-                end
-            end
-        end
-    else
-        -- There shouldn't be a player in the vehicle, if there is eject them.
-        local currentDriver = vehicleEntity.get_driver()
-        if currentDriver ~= nil then
-            local currentDriverCharacter
-            if not currentDriver.is_player() then
-                ---@cast currentDriver LuaEntity
-                currentDriverCharacter = currentDriver
-                currentDriver = currentDriver.player
-            else
-                ---@cast currentDriver LuaPlayer
-                currentDriverCharacter = currentDriver.character
-            end ---@cast currentDriver - nil
-            if currentDriverCharacter ~= nil then
-                -- For a player to be ejected from a train carriage the train carriage can't have a blocker directly under its center. So we remove the blocker and then return it after ejecting the player.
-                if frozenVehicleDetails.trainBlockerEntity ~= nil then
-                    frozenVehicleDetails.trainBlockerEntity.destroy({ raise_destroy = false })
-                end
-                currentDriver.driving = false
-                if frozenVehicleDetails.trainBlockerEntity ~= nil then
-                    frozenVehicleDetails.trainBlockerEntity = StasisLandMine.CreateFrozenTrainCarriageBlocker(vehicleEntity)
-                end
-                vehicleEntity.surface.create_entity({ name = "flying-text", position = vehicleEntity.position, text = { "message.stasis_mine-player_can_not_enter_vehicle" }, render_player_index = currentDriver.index })
-            end
-        end
-    end
+    StasisLandMine.CheckVehicleSeat(frozenVehicleDetails, "driver")
     if frozenVehicleDetails.vehicleType == "car" or frozenVehicleDetails.vehicleType == "spider-vehicle" then
-        -- TODO: this should be the same as driver, so functionise it.
         -- Only these vehicle types can have passengers.
-        if frozenVehicleDetails.passenger ~= nil then
-            -- There should still be a player in the vehicle, if there isn't return them.
-        else
-            -- There shouldn't be a player in the vehicle, if there is eject them.
-        end
+        StasisLandMine.CheckVehicleSeat(frozenVehicleDetails, "passenger")
     end
 
     if event.tick < (frozenVehicleDetails.unfreezeTick - 1) then
@@ -311,11 +266,70 @@ end
 StasisLandMine.CreateFrozenTrainCarriageBlocker = function(vehicleEntity)
     local blockerEntity = vehicleEntity.surface.create_entity({ name = "stasis-train-blocker", position = vehicleEntity.position })
     if blockerEntity == nil then
-        -- TODO: add a warning that the train blocker failed to create.
+        game.print("ERROR - Stasis Mine - Failed to create blocking entity under train carriage at: " .. Logging.PositionToString(vehicleEntity.position), { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
         return nil
     end
     blockerEntity.destructible = false
     return blockerEntity
+end
+
+--- Check a vehicles seats are as expected.
+---@param frozenVehicleDetails FreezeVehicleDetails
+---@param seat "driver"|"passenger"
+StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat)
+    local vehicleEntity = frozenVehicleDetails.entity
+    local seatName, currentSeatOccupant, setSeatOccupantFunction
+    if seat == "driver" then
+        seatName = "driver"
+        currentSeatOccupant = vehicleEntity.get_driver()
+        setSeatOccupantFunction = vehicleEntity.set_driver
+    else
+        seatName = "passenger"
+        currentSeatOccupant = vehicleEntity.get_passenger()
+        setSeatOccupantFunction = vehicleEntity.set_passenger
+    end
+    if frozenVehicleDetails[seatName] ~= nil then
+        -- There should still be a player in the vehicle, if there isn't return them.
+        if currentSeatOccupant == nil then
+            -- No player in vehicle, assuming the expected player has a character then set them back to the vehicle if they're close. If they don't have a character they are dead or something weird and we shouldn't set them back in to the vehicle. We check if close as this avoids us undoing any long distance teleport, so should just limit us to if the player got out of the vehicle as the vehicle will be stationary.
+            local expectedCharacter = frozenVehicleDetails[seatName]--[[@as LuaPlayer]] .character
+            if expectedCharacter ~= nil then
+                if Utils.GetDistance(vehicleEntity.position, expectedCharacter.position) < 5 then
+                    -- Player is near by so put them back in to the seat.
+                    setSeatOccupantFunction(expectedCharacter)
+                    vehicleEntity.surface.create_entity({ name = "flying-text", position = vehicleEntity.position, text = { "message.stasis_mine-player_can_not_leave_vehicle" }, render_player_index = frozenVehicleDetails[seatName].index })
+                else
+                    -- Player is too far away, so forget they where in the seat. Otherwise if they walk near the vehicle they will be snapped back in to it.
+                    -- CODE NOTE: this disable isn't ideal, but asked as question: https://github.com/sumneko/lua-language-server/discussions/1616
+                    frozenVehicleDetails[seatName] = nil ---@diagnostic disable-line:no-unknown
+                end
+            end
+        end
+    else
+        -- There shouldn't be a player in the vehicle, if there is eject them.
+        if currentSeatOccupant ~= nil then
+            local currentSeatCharacter
+            if not currentSeatOccupant.is_player() then
+                ---@cast currentSeatOccupant LuaEntity
+                currentSeatCharacter = currentSeatOccupant
+                currentSeatOccupant = currentSeatOccupant.player
+            else
+                ---@cast currentSeatOccupant LuaPlayer
+                currentSeatCharacter = currentSeatOccupant.character
+            end ---@cast currentSeatOccupant - nil
+            if currentSeatCharacter ~= nil then
+                -- For a player to be ejected from a train carriage the train carriage can't have a blocker directly under its center. So we remove the blocker and then return it after ejecting the player.
+                if frozenVehicleDetails.trainBlockerEntity ~= nil then
+                    frozenVehicleDetails.trainBlockerEntity.destroy({ raise_destroy = false })
+                end
+                currentSeatOccupant.driving = false
+                if frozenVehicleDetails.trainBlockerEntity ~= nil then
+                    frozenVehicleDetails.trainBlockerEntity = StasisLandMine.CreateFrozenTrainCarriageBlocker(vehicleEntity)
+                end
+                vehicleEntity.surface.create_entity({ name = "flying-text", position = vehicleEntity.position, text = { "message.stasis_mine-player_can_not_enter_vehicle" }, render_player_index = currentSeatOccupant.index })
+            end
+        end
+    end
 end
 
 --- Release a vehicle caught in the blast from being frozen.
