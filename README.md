@@ -1,6 +1,6 @@
 # Factorio-Stasis-Mine
-Adds weapons that takes everything near by in to a temporary stasis, with them becoming frozen and immune from damage.
-Discovered as a by product of Effect Transmission (beacon) research gone wrong.
+Adds weapons that takes everything near by in to a temporary stasis, with them becoming frozen and immune from damage. Discovered as a by product of Effect Transmission (beacon) research gone wrong.
+
 Weapon options include land mine, rocket and grenade.
 
 ![Stasis Land Mine Example](https://media.giphy.com/media/feaLga7G7lBaGcluQt/giphy.gif)
@@ -11,8 +11,8 @@ Mod Settings
 ------------
 
 - Control if all or just opposing force's entities are frozen in stasis when a stasis weapon detonates.
-- Control the time things are frozen for. Defaults to 20 seconds
-- Mod startup settings to disable each of the stasis weapon types individually. This disables the technologies, recipes and item lists for the stasis weapon. It doesn't remove the items so they can still be used via other mods in game. Defaults to not being disabled.
+- Control the time things are frozen for. Defaults to 20 seconds.
+- Mod startup settings to disable each of the stasis weapon types individually. This disables the technologies, recipes and item lists for the stasis weapon. It doesn't remove the items from the game so they can still be used via other mods in game. Defaults to not being disabled.
 - Settings for if trains and spider vehicles are separately affected by stasis or not. Trains are either all or not affected by stasis, not per carriage. Spidertrons can never set landmines off as this is just how Factorio works.
 
 
@@ -22,11 +22,11 @@ Notes
 
 - Things already in a stasis can not be affected by another stasis triggering. Only "free" things can enter a stasis.
 - Inspired by the Protoss Stasis Trap in StarCraft 2, but adapted for Factorio.
-- Stasis land mines are themselves immune from the stasis effect.
+- Stasis land mines are themselves immune from the stasis effect. So making a dense minefield is fine.
 - Players are prevented from getting in and out of vehicles in stasis. This is done via script and not a Factorio permission group to maintain compatibility with other mods & scenarios. If the player gets out of the vehicle and is found to be more than a short distance away it is assumed to be intentional, i.e. via a teleport command from another script. This is try and keep it compatible with streamer integrations that teleport players and won't be aware that their vehicle was being affected by a stasis.
-- When a rolling stock in a train affected by stasis is disconnected, after the train leaves stasis the same effects happen as when a regular train has a carriage disconnected. The train parts will each be set to manual losing any station reservation and if the train is moving it may crash in to the other parts of itself.
-- Cars and spider-vehicles caught in a stasis are disabled (`active = false`), however this property can't be applied to trains.
-- Disabled vehicles can still fire a single shot it seems. This is just how Factorio appears to work for disabled vehicles.
+- When a rolling stock affected by stasis is disconnected from other carriages the effect is the same as in regular Factorio, however, this may feel odd due to the delay. Immediately the train parts will each be set to manual losing any station reservation. Once the stasis wears off if the train is moving it may crash in to the other parts of itself. A side effect of the rolling stock being is stasis is that it can not be connected back to other carriages during the stasis effect, but it can be disconnected; this is just base Factorio logic.
+- Cars and spider-vehicles caught in a stasis are disabled (`active = false`), however this property can't be applied to trains. All of the vehicles can be identified as they have `destructible = false` and `openable = false`, which wouldn't normally be set on any Factorio vehicle if the player could drive it.
+- Disabled vehicles are able to fire a single shot (in the chamber) of any weapon. This is just how Factorio appears to work for disabled vehicles.
 
 
 
