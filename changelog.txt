@@ -4,6 +4,7 @@ Date: 2022-10-XXX
   Features:
     - Added option to enable/disable trains being affected by stasis. Defaults to affecting trains.
     - Added option to enable/disable spidertrons being affected by stasis. Defaults to affecting spidertrons.
+    - Added option to set the stasis blast area. Defaults to the original 6 tiles.
   Changes:
     - Trains are now entirely affected when one or more carriages are affected by stasis (mod setting depending). Now a fully affected train has stasis applied to all carriages in the train and it is fully stopped and prevented from moving for the duration of the effect. This is as a partially affected train doesn't behave nicely and would have lots of edge cases.
     - Players are not able to get in/out of vehicles in stasis. This is managed by script and not permission groups.

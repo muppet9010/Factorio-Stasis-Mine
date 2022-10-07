@@ -11,7 +11,7 @@ Mod Settings
 ------------
 
 - Control if all or just opposing force's entities are frozen in stasis when a stasis weapon detonates.
-- Control the time things are frozen for. Defaults to 20 seconds.
+- Control the time things are frozen for and how big the stasis blast area is.
 - Mod startup settings to disable each of the stasis weapon types individually. This disables the technologies, recipes and item lists for the stasis weapon. It doesn't remove the items from the game so they can still be used via other mods in game. Defaults to not being disabled.
 - Settings for if trains and spider vehicles are separately affected by stasis or not. Trains are either all or not affected by stasis, not per carriage. Spidertrons can never set landmines off as this is just how Factorio works.
 

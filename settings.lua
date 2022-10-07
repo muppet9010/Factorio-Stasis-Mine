@@ -17,6 +17,14 @@ data:extend(
             order = "1002"
         },
         {
+            name = "stasis_mine-stasis_effect_area",
+            type = "int-setting",
+            default_value = 6,
+            minimum_value = 1,
+            setting_type = "startup",
+            order = "1003"
+        },
+        {
             name = "stasis_mine-disable_stasis_mine",
             type = "bool-setting",
             default_value = false,
