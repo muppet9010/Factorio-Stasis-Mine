@@ -48,6 +48,13 @@ data:extend(
             default_value = true,
             setting_type = "runtime-global",
             order = "1001"
+        },
+        {
+            name = "stasis_mine-spidertrons_affected",
+            type = "bool-setting",
+            default_value = true,
+            setting_type = "runtime-global",
+            order = "1001"
         }
     }
 )

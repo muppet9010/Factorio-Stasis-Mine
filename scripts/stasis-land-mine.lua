@@ -66,6 +66,9 @@ StasisLandMine.OnSettingChanged = function(event)
     if event == nil or event.setting == "stasis_mine-trains_affected" then
         global.modSettings["trains_affected"] = settings.global["stasis_mine-trains_affected"].value --[[@as boolean]]
     end
+    if event == nil or event.setting == "stasis_mine-spidertrons_affected" then
+        global.modSettings["spidertrons_affected"] = settings.global["stasis_mine-spidertrons_affected"].value --[[@as boolean]]
+    end
 end
 
 ---  Disable the technology and recipe of the stasis weapon name.
@@ -106,7 +109,15 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick)
     local entity_type = entity.type
 
     -- Exclude some entities from being affected.
-    if entity.name == "stasis-land-mine" or entity_type == "spider-leg" then
+    if entity.name == "stasis-land-mine" then
+        return
+    end
+
+    -- Handle spider legs specially, but we always finish their processing as they themselves aren't frozen.
+    if entity_type == "spider-leg" then
+        if global.modSettings.spidertrons_affected then
+            StasisLandMine.SpiderLegAffected(entity, tick)
+        end
         return
     end
 
@@ -357,6 +368,33 @@ StasisLandMine.UnFreezeVehicle = function(frozenVehicleDetails)
     end
 end
 
+--- Handle when a spider leg is affected by a stasis effect and freeze the parent spider.
+---@param frozenSpiderLegEntity LuaEntity
+---@param tick uint
+StasisLandMine.SpiderLegAffected = function(frozenSpiderLegEntity, tick)
+    -- Radius of 20 should be enough to find any real sized spider from its leg.
+    local nearBySpiders = frozenSpiderLegEntity.surface.find_entities_filtered({ type = "spider-vehicle", position = frozenSpiderLegEntity.position, radius = 20 })
+    local parentSpider
+    for _, spider in pairs(nearBySpiders) do
+        for _, leg in pairs(spider.get_spider_legs()) do
+            if leg == frozenSpiderLegEntity then
+                parentSpider = spider
+                break
+            end
+        end
+        if parentSpider ~= nil then
+            break
+        end
+    end
+
+    if parentSpider == nil then
+        game.print("ERROR - Stasis Mine - Failed to find parent spider of affected spider leg at: " .. Logging.PositionToString(frozenSpiderLegEntity.position), { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        return
+    end
+
+    -- Call to freeze the spider. If its already been frozen this function will handle this cleanly.
+    StasisLandMine.ApplyStasisToTarget(parentSpider, tick)
+end
 
 
 --- Get a unique ID for an entity. Either its unit_number or a string with unique details.

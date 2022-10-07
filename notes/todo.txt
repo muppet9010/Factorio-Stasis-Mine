@@ -4,9 +4,9 @@ Now:
 
 Future:
 	- Add: mod startup setting to set the size of the effect. We can just scale up things in the data stage.
-	- Add: add smoother looking graphics for grenade and rocket, although not quite sure what the design should be, hence current temporary graphics.
-	- Add: setting if spidertrons are immune. I can't get the spider from the leg, so the area damage effect isn't going to work. Will need to do a surface scan around the effect area for just spider vehicles, but this would mean if a leg is in range, but the body isn't then the spider escapes. A larger area check may find spiders that don't have legs in the area. So maybe log the legs found and then do a larger spider search and then see which one(s) the leg(s) belong too.
+	- Add: add smoother looking graphics for grenade and rocket, although not quite sure what the design should be, hence current temporary graphics. Maybe just use smoother item graphics for the techs.
     - Add: Look at making the stasis graphic per entity scale based on the entities collision box.
+    - Add: add a remote interface to create a stasis affect at a given location, size and duration.
 
 
 
