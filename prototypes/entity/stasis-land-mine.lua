@@ -24,9 +24,8 @@ data:extend(
             random_corpse_variation = true,
             dying_explosion = "stasis_min-stasis_dying_explosion",
             dying_trigger_effect = {
-                type = "create-trivial-smoke",
-                smoke_name = "stasis_mine-stasis_dying_effect",
-                starting_frame_deviation = 16
+                type = "create-entity",
+                entity_name = "stasis_mine-stasis_dying_effect"
             },
             collision_box = { { -0.4, -0.4 }, { 0.4, 0.4 } },
             selection_box = { { -0.5, -0.5 }, { 0.5, 0.5 } },

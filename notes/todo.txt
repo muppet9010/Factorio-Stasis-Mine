@@ -4,7 +4,6 @@ Now:
 
 Future:
     - Add: add a remote interface to create a stasis affect at a given location, size and duration.
-    - Need a small blue light on the entities affected graphics. This will require changing them to explosions and making a more alpha'd image for just them. The smoke effect can entirely go then.
     - Move global.stasisLandMine.stasisAffectTime to the global.modSettings
 
 

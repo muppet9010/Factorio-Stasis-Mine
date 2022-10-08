@@ -138,7 +138,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick)
     end
 
     -- Show the effect on the entity.
-    entity.surface.create_trivial_smoke {
+    entity.surface.create_entity {
         name = "stasis_mine-stasis_target_impact_effect",
         position = Utils.ApplyOffsetToPosition(entity.position, { x = 0, y = -0.5 })
     }
