@@ -14,7 +14,8 @@ data:extend(
                 "placeable-enemy",
                 "player-creation",
                 "placeable-off-grid",
-                "not-on-map"
+                "not-on-map",
+                "hidden"
             },
             minable = { mining_time = 0.5, result = "stasis-land-mine" },
             mined_sound = { filename = "__core__/sound/deconstruct-small.ogg" },
@@ -56,7 +57,7 @@ data:extend(
             },
             trigger_radius = 2.5,
             timeout = 600,
-            ammo_category = "stasis",
+            ammo_category = "landmine",
             action = {
                 type = "direct",
                 action_delivery = {

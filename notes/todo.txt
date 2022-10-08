@@ -3,10 +3,8 @@ Now:
 
 
 Future:
-    - Add: Look at making the stasis graphic per entity scale based on the entities collision box.
     - Add: add a remote interface to create a stasis affect at a given location, size and duration.
-    - Move the light generation to the prototypes and not in the script side for better UPS.
-    - Need a small blue light on the entities affected graphics.
+    - Need a small blue light on the entities affected graphics. Do in script like main detonation light. Add note that not practical to do in prototype layer.
     - Move global.stasisLandMine.stasisAffectTime to the global.modSettings
 
 
