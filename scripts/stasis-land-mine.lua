@@ -90,17 +90,20 @@ end
 ---@param event EventData.on_script_trigger_effect
 StasisLandMine.OnScriptTriggerEffect = function(event)
     if event.effect_id == "stasis_affected_target" and event.target_entity ~= nil then
+        -- Is a potential target to be frozen.
         StasisLandMine.ApplyStasisToTarget(event.target_entity, event.tick)
-    elseif event.effect_id == "stasis_land_mine_source" then
-        rendering.draw_light({ sprite = "utility/light_medium", target = event.source_entity.position, surface = event.surface_index, time_to_live = 5, color = StasisLandMineLightColor, scale = 2.0 })
-        rendering.draw_light({ sprite = "utility/light_medium", target = event.source_entity.position, surface = event.surface_index, time_to_live = 30, color = StasisLandMineLightColor, scale = (global.modSettings["stasis_effect_area"] / 2), intensity = 0.5 })
-    elseif event.effect_id == "stasis_rocket_source" then
-        -- CODE NOTE: `event.source_entity` is only populated if the target is still alive at the time of rocket detonation. `event.target_position` is always populated where the rocket explodes.
-        rendering.draw_light({ sprite = "utility/light_medium", target = event.target_position, surface = event.surface_index, time_to_live = 5, color = StasisLandMineLightColor, scale = 2.0 })
-        rendering.draw_light({ sprite = "utility/light_medium", target = event.target_position, surface = event.surface_index, time_to_live = 45, color = StasisLandMineLightColor, scale = (global.modSettings["stasis_effect_area"] / 2), intensity = 0.5 })
-    elseif event.effect_id == "stasis_grenade_source" then
-        rendering.draw_light({ sprite = "utility/light_medium", target = event.target_position, surface = event.surface_index, time_to_live = 5, color = StasisLandMineLightColor, scale = 2.0 })
-        rendering.draw_light({ sprite = "utility/light_medium", target = event.target_position, surface = event.surface_index, time_to_live = 30, color = StasisLandMineLightColor, scale = (global.modSettings["stasis_effect_area"] / 2), intensity = 0.5 })
+    elseif event.effect_id == "stasis_land_mine_source" or event.effect_id == "stasis_rocket_source" or event.effect_id == "stasis_grenade_source" then
+        -- Is the detonation itself.
+        local position
+        if event.effect_id == "stasis_land_mine_source" then
+            position = event.source_entity.position
+        else
+            -- CODE NOTE: for `event.effect_id == "stasis_rocket_source"` then `event.source_entity` is only populated if the target is still alive at the time of rocket detonation. `event.target_position` is always populated where the rocket explodes.
+            position = event.target_position ---@cast position - nil
+        end
+        -- CODE NOTE: Down side is that these lights can't fade in or out like an explosion can. But for an explosion we need to make a dedicated explosion just for the light, as the very long durations of the effect mean we need a very slow frame progression in the explosion to avoid the max frame limit (255).
+        rendering.draw_light({ sprite = "utility/light_medium", target = position, surface = event.surface_index, time_to_live = 25, color = StasisLandMineLightColor, scale = 2.0, intensity = 0.5 })
+        rendering.draw_light({ sprite = "utility/light_medium", target = position, surface = event.surface_index, time_to_live = 25, color = StasisLandMineLightColor, scale = (global.modSettings["stasis_effect_area"] / 2), intensity = 0.5 })
     end
 end
 
@@ -137,13 +140,26 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick)
     global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
     local unfreezeTick = tick + global.stasisLandMine.stasisAffectTime
     EventScheduler.ScheduleEvent(unfreezeTick, "StasisLandMine.RemoveStasisFromTarget", global.stasisLandMine.nextSchedulerId, { entity = entity, identifier = identifier })
-    local affectedEntityDetails = { unfreezeTick = unfreezeTick, wasActive = entity.active, wasDestructible = entity.destructible, oldOperable = entity.operable, oldMinable = entity.minable }
+    local wasActive, wasDestructible, oldOperable, oldMinable = entity.active, entity.destructible, entity.operable, entity.minable
+    local affectedEntityDetails = { unfreezeTick = unfreezeTick }
     global.stasisLandMine.affectedEntities[identifier] = affectedEntityDetails
 
-    entity.active = false -- Disable all vehicles despite it seeming to have intermittent results as it helps other mod recognise them as un-usable.
-    entity.destructible = false
-    entity.operable = false
-    entity.minable = false
+    if wasActive then
+        entity.active = false -- Disable all vehicles despite it seeming to have intermittent results as it helps other mod recognise them as un-usable.
+        affectedEntityDetails.wasActive = true
+    end
+    if wasDestructible then
+        entity.destructible = false
+        affectedEntityDetails.wasDestructible = true
+    end
+    if oldOperable then
+        entity.operable = false
+        affectedEntityDetails.oldOperable = true
+    end
+    if oldMinable then
+        entity.minable = false
+        affectedEntityDetails.oldMinable = true
+    end
 
     -- Freeze all vehicle types specially.
     if entity_type == "locomotive" or entity_type == "cargo-wagon" or entity_type == "fluid-wagon" or entity_type == "artillery-wagon" or entity_type == "car" or entity_type == "spider-vehicle" then
@@ -152,10 +168,12 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick)
     end
 
     -- Show the effect on the entity.
-    entity.surface.create_trivial_smoke {
+    local entity_position, entity_surface = entity.position, entity.surface
+    entity_surface.create_trivial_smoke {
         name = "stasis_mine-stasis_target_impact_effect",
-        position = Utils.ApplyOffsetToPosition(entity.position, { x = 0, y = -0.5 })
+        position = Utils.ApplyOffsetToPosition(entity_position, { x = 0, y = -0.5 })
     }
+    rendering.draw_light({ sprite = "utility/light_medium", target = entity_position, surface = entity_surface, time_to_live = global.stasisLandMine.stasisAffectTime, color = StasisLandMineLightColor, scale = 0.5, intensity = 0.25 })
 end
 
 --- Remove the stasis effect from a target.
@@ -170,8 +188,13 @@ StasisLandMine.RemoveStasisFromTarget = function(event)
         return
     end
 
-    entity.active = affectedEntityData.wasActive
-    entity.destructible = affectedEntityData.wasDestructible
+    -- CODE NOTE: set these all back to their "old" value as older mod versions always captured these values. This has the same impact on newer versions that only capture thme if they are changed.
+    if affectedEntityData.wasActive ~= nil then
+        entity.active = affectedEntityData.wasActive
+    end
+    if affectedEntityData.wasDestructible ~= nil then
+        entity.destructible = affectedEntityData.wasDestructible
+    end
     if affectedEntityData.oldOperable ~= nil then
         entity.operable = affectedEntityData.oldOperable
     end

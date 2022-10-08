@@ -4,7 +4,6 @@ Now:
 
 Future:
     - Add: add a remote interface to create a stasis affect at a given location, size and duration.
-    - Need a small blue light on the entities affected graphics. Do in script like main detonation light. Add note that not practical to do in prototype layer.
     - Move global.stasisLandMine.stasisAffectTime to the global.modSettings
 
 
