@@ -49,6 +49,8 @@ end
 
 StasisLandMine.OnStartup = function()
     global.stasisLandMine.stasisAffectTime = tonumber(settings.startup["stasis_mine-stasis_time"].value) --[[@as uint]] * 60
+    global.modSettings["stasis_effect_area"] = tonumber(settings.startup["stasis_mine-stasis_effect_area"].value) --[[@as float]]
+    -- The mod setting value is technically a uint, but everywhere we use it wants a float.
 
     -- Ensure any disabled stasis weapon types are applied to forces. They might have been enabled before and are now disabled.
     if settings.startup["stasis_mine-disable_stasis_mine"].value --[[@as boolean]] then
@@ -91,14 +93,14 @@ StasisLandMine.OnScriptTriggerEffect = function(event)
         StasisLandMine.ApplyStasisToTarget(event.target_entity, event.tick)
     elseif event.effect_id == "stasis_land_mine_source" then
         rendering.draw_light({ sprite = "utility/light_medium", target = event.source_entity.position, surface = event.surface_index, time_to_live = 5, color = StasisLandMineLightColor, scale = 2.0 })
-        rendering.draw_light({ sprite = "utility/light_medium", target = event.source_entity.position, surface = event.surface_index, time_to_live = 45, color = StasisLandMineLightColor, scale = 3.0, intensity = 0.5 })
+        rendering.draw_light({ sprite = "utility/light_medium", target = event.source_entity.position, surface = event.surface_index, time_to_live = 30, color = StasisLandMineLightColor, scale = (global.modSettings["stasis_effect_area"] / 2), intensity = 0.5 })
     elseif event.effect_id == "stasis_rocket_source" then
         -- CODE NOTE: `event.source_entity` is only populated if the target is still alive at the time of rocket detonation. `event.target_position` is always populated where the rocket explodes.
         rendering.draw_light({ sprite = "utility/light_medium", target = event.target_position, surface = event.surface_index, time_to_live = 5, color = StasisLandMineLightColor, scale = 2.0 })
-        rendering.draw_light({ sprite = "utility/light_medium", target = event.target_position, surface = event.surface_index, time_to_live = 45, color = StasisLandMineLightColor, scale = 3.0, intensity = 0.5 })
+        rendering.draw_light({ sprite = "utility/light_medium", target = event.target_position, surface = event.surface_index, time_to_live = 45, color = StasisLandMineLightColor, scale = (global.modSettings["stasis_effect_area"] / 2), intensity = 0.5 })
     elseif event.effect_id == "stasis_grenade_source" then
         rendering.draw_light({ sprite = "utility/light_medium", target = event.target_position, surface = event.surface_index, time_to_live = 5, color = StasisLandMineLightColor, scale = 2.0 })
-        rendering.draw_light({ sprite = "utility/light_medium", target = event.target_position, surface = event.surface_index, time_to_live = 45, color = StasisLandMineLightColor, scale = 3.0, intensity = 0.5 })
+        rendering.draw_light({ sprite = "utility/light_medium", target = event.target_position, surface = event.surface_index, time_to_live = 30, color = StasisLandMineLightColor, scale = (global.modSettings["stasis_effect_area"] / 2), intensity = 0.5 })
     end
 end
 
