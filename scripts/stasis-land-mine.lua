@@ -101,7 +101,6 @@ StasisLandMine.OnScriptTriggerEffect = function(event)
             -- CODE NOTE: for `event.effect_id == "stasis_rocket_source"` then `event.source_entity` is only populated if the target is still alive at the time of rocket detonation. `event.target_position` is always populated where the rocket explodes.
             position = event.target_position ---@cast position - nil
         end
-        -- CODE NOTE: Down side is that these lights can't fade in or out like an explosion can. But for an explosion we need to make a dedicated explosion just for the light, as the very long durations of the effect mean we need a very slow frame progression in the explosion to avoid the max frame limit (255).
         rendering.draw_light({ sprite = "utility/light_medium", target = position, surface = event.surface_index, time_to_live = 25, color = StasisLandMineLightColor, scale = 2.0, intensity = 0.5 })
         rendering.draw_light({ sprite = "utility/light_medium", target = position, surface = event.surface_index, time_to_live = 25, color = StasisLandMineLightColor, scale = (global.modSettings["stasis_effect_area"] / 2), intensity = 0.5 })
     end
@@ -188,7 +187,7 @@ StasisLandMine.RemoveStasisFromTarget = function(event)
         return
     end
 
-    -- CODE NOTE: set these all back to their "old" value as older mod versions always captured these values. This has the same impact on newer versions that only capture thme if they are changed.
+    -- CODE NOTE: set these all back to their "old" value as older mod versions always captured these values. This has the same impact on newer versions that only capture them if they are changed.
     if affectedEntityData.wasActive ~= nil then
         entity.active = affectedEntityData.wasActive
     end
@@ -336,8 +335,7 @@ StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat)
                     vehicleEntity.surface.create_entity({ name = "flying-text", position = vehicleEntity.position, text = { "message.stasis_mine-player_can_not_leave_vehicle" }, render_player_index = frozenVehicleDetails[seatName].index })
                 else
                     -- Player is too far away, so forget they where in the seat. Otherwise if they walk near the vehicle they will be snapped back in to it.
-                    -- CODE NOTE: this disable isn't ideal, but asked as question: https://github.com/sumneko/lua-language-server/discussions/1616
-                    frozenVehicleDetails[seatName] = nil ---@diagnostic disable-line:no-unknown
+                    frozenVehicleDetails[seatName] = nil ---@diagnostic disable-line:no-unknown # no nicer work around for this as its inherently not typed to set an unknown field in an object: https://github.com/sumneko/lua-language-server/discussions/1616
                 end
             end
         end
