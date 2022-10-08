@@ -1,2 +1,1 @@
-The smaller image was upscaled using https://imgupscaler.com/
-It made the image 4 times the resolution, but also returned it as a JPG. So I just saved it back to a PNG with GIMP and it looks to be the same visuals, but smaller file size.
+The raw HR image is a very solid graphic. So each of the uses has its own alpha mask applied to the image to make them more transparent when used.

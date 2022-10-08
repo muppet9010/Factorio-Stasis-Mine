@@ -1,5 +1,4 @@
 -- Generic stasis stuff.
-require("prototypes/category/stasis-ammo-category")
 require("prototypes/entity/stasis-impact-effects")
 
 -- Stasis land mine stuff.

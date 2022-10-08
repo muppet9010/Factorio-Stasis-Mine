@@ -14,7 +14,8 @@ data:extend(
                 "placeable-enemy",
                 "player-creation",
                 "placeable-off-grid",
-                "not-on-map"
+                "not-on-map",
+                "hidden"
             },
             minable = { mining_time = 0.5, result = "stasis-land-mine" },
             mined_sound = { filename = "__core__/sound/deconstruct-small.ogg" },
@@ -56,7 +57,7 @@ data:extend(
             },
             trigger_radius = 2.5,
             timeout = 600,
-            ammo_category = "stasis",
+            ammo_category = "landmine",
             action = {
                 type = "direct",
                 action_delivery = {
@@ -81,13 +82,8 @@ data:extend(
                             }
                         },
                         {
-                            type = "create-trivial-smoke",
-                            smoke_name = "stasis_mine-stasis_source_impact_effect",
-                            starting_frame_deviation = 16
-                        },
-                        {
-                            type = "script",
-                            effect_id = "stasis_land_mine_source"
+                            type = "create-explosion",
+                            entity_name = "stasis_mine-stasis_source_impact_effect"
                         }
                     }
                 }

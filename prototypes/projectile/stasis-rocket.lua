@@ -26,13 +26,8 @@ StasisRocket.action = {
                 }
             },
             {
-                type = "create-trivial-smoke",
-                smoke_name = "stasis_mine-stasis_source_impact_effect",
-                starting_frame_deviation = 16
-            },
-            {
-                type = "script",
-                effect_id = "stasis_rocket_source"
+                type = "create-explosion",
+                entity_name = "stasis_mine-stasis_source_impact_effect"
             }
         }
     }
