@@ -26,8 +26,13 @@ StasisGrenade.action = {
                 }
             },
             {
-                type = "create-entity",
-                entity_name = "stasis_mine-stasis_source_impact_effect"
+                type = "create-trivial-smoke",
+                smoke_name = "stasis_mine-stasis_source_impact_effect",
+                starting_frame_deviation = 16
+            },
+            {
+                type = "script",
+                effect_id = "stasis_grenade_source"
             }
         }
     }

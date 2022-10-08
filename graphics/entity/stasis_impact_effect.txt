@@ -1,1 +1,0 @@
-The raw HR image is a very solid graphic. So each of the uses has its own alpha mask applied to the image to make them more transparent when used.
