@@ -1,3 +1,7 @@
+--[[
+    Some of the slightly odd data structures are to avoid needing to do a migration script for old saves.
+]]
+
 local StasisLandMine = {}
 local Events = require("utility/events")
 local Utils = require("utility/utils")
@@ -8,6 +12,7 @@ local Logging = require("utility.logging")
 
 ---@class AffectedEntityDetails
 ---@field unfreezeTick uint
+---@field freezeDuration uint # Will be 300 or greater.
 ---@field wasActive boolean
 ---@field wasDestructible boolean
 ---@field oldOperable boolean
@@ -16,8 +21,7 @@ local Logging = require("utility.logging")
 
 ---@class FreezeVehicleDetails
 ---@field entity LuaEntity
----@field initialFreeze boolean
----@field unfreezeTick uint
+---@field initialFreeze boolean # If this loop of the Frozen Vehicle check is the first one for the vehicle or not.
 ---@field vehicleType string
 ---@field affectedEntityDetails AffectedEntityDetails
 ---@field carriageOldSpeed double|nil
@@ -90,7 +94,7 @@ end
 StasisLandMine.OnScriptTriggerEffect = function(event)
     if event.effect_id == "stasis_affected_target" and event.target_entity ~= nil then
         -- Is a potential target to be frozen.
-        StasisLandMine.ApplyStasisToTarget(event.target_entity, event.tick)
+        StasisLandMine.ApplyStasisToTarget(event.target_entity, event.tick, global.modSettings["stasis_time"])
     elseif event.effect_id == "stasis_land_mine_source" or event.effect_id == "stasis_rocket_source" or event.effect_id == "stasis_grenade_source" then
         -- Is the detonation itself.
         local position
@@ -109,7 +113,8 @@ end
 --- Apply the stasis effect to an entity caught in the blast.
 ---@param entity LuaEntity
 ---@param tick uint
-StasisLandMine.ApplyStasisToTarget = function(entity, tick)
+---@param freezeDuration uint # Will be 300 ticks or greater.
+StasisLandMine.ApplyStasisToTarget = function(entity, tick, freezeDuration)
     local entity_type = entity.type
 
     -- Exclude some entities from being affected.
@@ -120,7 +125,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick)
     -- Handle spider legs specially, but we always finish their processing as they themselves aren't frozen.
     if entity_type == "spider-leg" then
         if global.modSettings.spidertrons_affected then
-            StasisLandMine.SpiderLegAffected(entity, tick)
+            StasisLandMine.SpiderLegAffected(entity, tick, freezeDuration)
         end
         return
     end
@@ -137,10 +142,10 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick)
     end
 
     global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
-    local unfreezeTick = tick + global.modSettings["stasis_time"]
+    local unfreezeTick = tick + freezeDuration
     EventScheduler.ScheduleEvent(unfreezeTick, "StasisLandMine.RemoveStasisFromTarget", global.stasisLandMine.nextSchedulerId, { entity = entity, identifier = identifier })
     local wasActive, wasDestructible, oldOperable, oldMinable = entity.active, entity.destructible, entity.operable, entity.minable
-    local affectedEntityDetails = { unfreezeTick = unfreezeTick }
+    local affectedEntityDetails = { unfreezeTick = unfreezeTick, freezeDuration = freezeDuration }
     global.stasisLandMine.affectedEntities[identifier] = affectedEntityDetails
 
     if wasActive then
@@ -162,17 +167,18 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick)
 
     -- Freeze all vehicle types specially.
     if entity_type == "locomotive" or entity_type == "cargo-wagon" or entity_type == "fluid-wagon" or entity_type == "artillery-wagon" or entity_type == "car" or entity_type == "spider-vehicle" then
-        affectedEntityDetails.frozenVehicleDetails = { entity = entity, unfreezeTick = unfreezeTick, vehicleType = entity_type, affectedEntityDetails = affectedEntityDetails, initialFreeze = true }
+        affectedEntityDetails.frozenVehicleDetails = { entity = entity, vehicleType = entity_type, affectedEntityDetails = affectedEntityDetails, initialFreeze = true }
         StasisLandMine.FreezeVehicle({ tick = tick, data = affectedEntityDetails.frozenVehicleDetails })
     end
 
     -- Show the effect on the entity.
     local entity_position, entity_surface = entity.position, entity.surface
+    --TODO: this smoke needs to have a variable length. Try using a smoke-with-trigger rather than trivial-smoke as then we can set `time_to_live` on the LuaEntity once created.
     entity_surface.create_trivial_smoke {
         name = "stasis_mine-stasis_target_impact_effect",
         position = Utils.ApplyOffsetToPosition(entity_position, { x = 0, y = -0.5 })
     }
-    rendering.draw_light({ sprite = "utility/light_medium", target = entity_position, surface = entity_surface, time_to_live = global.modSettings["stasis_time"] - 25, color = StasisLandMineLightColor, scale = 0.5, intensity = 0.25 }) -- TTL on light is based on when the effect visually significantly fades away.
+    rendering.draw_light({ sprite = "utility/light_medium", target = entity_position, surface = entity_surface, time_to_live = freezeDuration - 25, color = StasisLandMineLightColor, scale = 0.5, intensity = 0.25 }) -- TTL on light is based on when the effect visually significantly fades away.
 end
 
 --- Remove the stasis effect from a target.
@@ -235,7 +241,7 @@ StasisLandMine.FreezeVehicle = function(event)
                 global.stasisLandMine.frozenTrainIds[train_id] = true
                 for _, carriage in pairs(train.carriages) do
                     if carriage ~= vehicleEntity then
-                        StasisLandMine.ApplyStasisToTarget(carriage, event.tick)
+                        StasisLandMine.ApplyStasisToTarget(carriage, event.tick, frozenVehicleDetails.affectedEntityDetails.freezeDuration)
                     end
                 end
             end
@@ -289,7 +295,7 @@ StasisLandMine.FreezeVehicle = function(event)
         StasisLandMine.CheckVehicleSeat(frozenVehicleDetails, "passenger")
     end
 
-    if event.tick < (frozenVehicleDetails.unfreezeTick - 1) then
+    if event.tick < (frozenVehicleDetails.affectedEntityDetails.unfreezeTick - 1) then
         global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
         EventScheduler.ScheduleEvent(event.tick + 1, "StasisLandMine.FreezeVehicle", global.stasisLandMine.nextSchedulerId, frozenVehicleDetails)
     end
@@ -394,7 +400,8 @@ end
 --- Handle when a spider leg is affected by a stasis effect and freeze the parent spider.
 ---@param frozenSpiderLegEntity LuaEntity
 ---@param tick uint
-StasisLandMine.SpiderLegAffected = function(frozenSpiderLegEntity, tick)
+---@param freezeDuration uint # Will be 300 ticks or greater.
+StasisLandMine.SpiderLegAffected = function(frozenSpiderLegEntity, tick, freezeDuration)
     -- Radius of 20 should be enough to find any real sized spider from its leg.
     local nearBySpiders = frozenSpiderLegEntity.surface.find_entities_filtered({ type = "spider-vehicle", position = frozenSpiderLegEntity.position, radius = 20 })
     local parentSpider
@@ -416,7 +423,7 @@ StasisLandMine.SpiderLegAffected = function(frozenSpiderLegEntity, tick)
     end
 
     -- Call to freeze the spider. If its already been frozen this function will handle this cleanly.
-    StasisLandMine.ApplyStasisToTarget(parentSpider, tick)
+    StasisLandMine.ApplyStasisToTarget(parentSpider, tick, freezeDuration)
 end
 
 
@@ -429,6 +436,48 @@ StasisLandMine.MakeEntityIdentifier = function(entity)
     else
         return entity.surface.index .. "_" .. entity.name .. "_" .. Utils.FormatPositionTableToString(entity.position)
     end
+end
+
+--- Remote interface call to freeze a given entity.
+---@param entityToFreeze LuaEntity|any
+---@param timeSeconds uint|any
+StasisLandMine.PlaceEntityInStasis_Remote = function(entityToFreeze, timeSeconds)
+    local errorPrefix = "ERROR - Stasis Mine - 'stasis_entity' remote interface: "
+
+    -- Check the `entityToFreeze` argument.
+    if entityToFreeze == nil then
+        game.print(errorPrefix .. "No `entity` to freeze provided", { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        return
+    elseif type(entityToFreeze) ~= "table" then
+        game.print(errorPrefix .. "Non LuaEntity provided for `entity`, got type: " .. type(entityToFreeze), { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        return
+    elseif entityToFreeze.object_name ~= "LuaEntity" then
+        game.print(errorPrefix .. "Non LuaEntity provided for `entity`, got type: " .. entityToFreeze.object_name, { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        return
+    elseif not entityToFreeze.valid then
+        game.print(errorPrefix .. "Invalid (dead) LuaEntity provided for `entity`", { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        return
+    end
+
+    -- Check the `entityToFreeze` argument.
+    if timeSeconds == nil then
+        game.print(errorPrefix .. "No `time` to freeze provided", { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        return
+    end
+    local timeSeconds_number = tonumber(timeSeconds)
+    if timeSeconds_number == nil then
+        game.print(errorPrefix .. "None number provided for `time`, got: " .. timeSeconds, { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        return
+    end
+    local timeSeconds_number = math.floor(timeSeconds_number)
+    if timeSeconds_number < 5 then
+        game.print(errorPrefix .. "Stasis `time` must be 5 seconds or greater, got: " .. tostring(timeSeconds_number), { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        return
+    end ---@cast timeSeconds_number uint
+    local timeTicks = timeSeconds_number * 60 ---@type uint
+
+    -- Freeze the entity for the time.
+    StasisLandMine.ApplyStasisToTarget(entityToFreeze, game.tick, timeTicks)
 end
 
 return StasisLandMine

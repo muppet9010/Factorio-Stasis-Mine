@@ -30,12 +30,14 @@ Notes
 
 
 
-Remotely triggering the effect via Lua script
+Remotely triggering an area stasis effect via Lua script
 ---------------------------------------------
 
 You can remote trigger the stasis effect via a Lua script by creating a stasis grenade at the target position and it instantly will explode. While this isn't as elegant as me adding a bespoke remote interface call, it gives the same results.
 
-Example code below.
+#### Example Code
+
+Example code below to create a stasis grenade at a given position. It will instantly explode causing a stasis effect.
 Note: The semi colons on the end of each Lua snippet is to tell Lua where the end of each code snippet is, required by integrations that concatenate the Lua code in to a single line, and does no harm for other Lua code uses.
 
 ```
@@ -43,4 +45,31 @@ Note: The semi colons on the end of each Lua snippet is to tell Lua where the en
 local player = game.get_player("muppet9010");
 local position = player.position;
 player.surface.create_entity({name="stasis-grenade", position=position, force="enemy", target=position, speed=0, max_range=0});
+```
+
+
+Remotely placing an entity in stasis via Lua script
+---------------------------------------------
+
+You can remote trigger the stasis effect on a single entity via a Lua script.
+
+#### Arguments (in sequential order)
+
+- Entity = Reference to the entity to place in stasis.
+- Time = How many seconds (whole) the stasis effect will last. 5 or above.
+
+#### Example Code
+
+Example code below to stasis the player's vehicle/character for the set time.
+Note: The semi colons on the end of each Lua snippet is to tell Lua where the end of each code snippet is, required by integrations that concatenate the Lua code in to a single line, and does no harm for other Lua code uses.
+
+```
+/sc
+local player = game.get_player("muppet9010");
+if player then
+    local entityToFreeze = player.vehicle or player.character;
+    if entityToFreeze then
+        remote.call("stasis_mine", "stasis_entity", entityToFreeze, 20);
+    end
+end
 ```
