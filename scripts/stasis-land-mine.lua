@@ -36,7 +36,6 @@ StasisLandMine.CreateGlobals = function()
     global.stasisLandMine = global.stasisLandMine or {} ---@class Global_StasisLandMine # Used by the StasisLandMine for its own global data.
     global.stasisLandMine.affectedEntities = global.stasisLandMine.affectedEntities or {} ---@type table<Identifier, AffectedEntityDetails>
     global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId or 0 ---@type uint
-    global.stasisLandMine.stasisAffectTime = global.stasisLandMine.stasisAffectTime or 0 ---@type uint
     global.stasisLandMine.frozenTrainIds = global.stasisLandMine.frozenTrainIds or {} ---@type table<uint, boolean>
 end
 
@@ -48,7 +47,7 @@ StasisLandMine.OnLoad = function()
 end
 
 StasisLandMine.OnStartup = function()
-    global.stasisLandMine.stasisAffectTime = tonumber(settings.startup["stasis_mine-stasis_time"].value) --[[@as uint]] * 60
+    global.modSettings["stasis_time"] = tonumber(settings.startup["stasis_mine-stasis_time"].value) --[[@as uint]] * 60
     global.modSettings["stasis_effect_area"] = tonumber(settings.startup["stasis_mine-stasis_effect_area"].value) --[[@as float]]
     -- The mod setting value is technically a uint, but everywhere we use it wants a float.
 
@@ -101,6 +100,7 @@ StasisLandMine.OnScriptTriggerEffect = function(event)
             -- CODE NOTE: for `event.effect_id == "stasis_rocket_source"` then `event.source_entity` is only populated if the target is still alive at the time of rocket detonation. `event.target_position` is always populated where the rocket explodes.
             position = event.target_position ---@cast position - nil
         end
+        -- TTL on lights is based on when the effect visually significantly fades away.
         rendering.draw_light({ sprite = "utility/light_medium", target = position, surface = event.surface_index, time_to_live = 25, color = StasisLandMineLightColor, scale = 2.0, intensity = 0.5 })
         rendering.draw_light({ sprite = "utility/light_medium", target = position, surface = event.surface_index, time_to_live = 25, color = StasisLandMineLightColor, scale = (global.modSettings["stasis_effect_area"] / 2), intensity = 0.5 })
     end
@@ -137,7 +137,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick)
     end
 
     global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
-    local unfreezeTick = tick + global.stasisLandMine.stasisAffectTime
+    local unfreezeTick = tick + global.modSettings["stasis_time"]
     EventScheduler.ScheduleEvent(unfreezeTick, "StasisLandMine.RemoveStasisFromTarget", global.stasisLandMine.nextSchedulerId, { entity = entity, identifier = identifier })
     local wasActive, wasDestructible, oldOperable, oldMinable = entity.active, entity.destructible, entity.operable, entity.minable
     local affectedEntityDetails = { unfreezeTick = unfreezeTick }
@@ -172,7 +172,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick)
         name = "stasis_mine-stasis_target_impact_effect",
         position = Utils.ApplyOffsetToPosition(entity_position, { x = 0, y = -0.5 })
     }
-    rendering.draw_light({ sprite = "utility/light_medium", target = entity_position, surface = entity_surface, time_to_live = global.stasisLandMine.stasisAffectTime, color = StasisLandMineLightColor, scale = 0.5, intensity = 0.25 })
+    rendering.draw_light({ sprite = "utility/light_medium", target = entity_position, surface = entity_surface, time_to_live = global.modSettings["stasis_time"] - 25, color = StasisLandMineLightColor, scale = 0.5, intensity = 0.25 }) -- TTL on light is based on when the effect visually significantly fades away.
 end
 
 --- Remove the stasis effect from a target.

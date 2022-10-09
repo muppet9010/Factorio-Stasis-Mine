@@ -4,7 +4,8 @@ Now:
 
 Future:
     - Add: add a remote interface to create a stasis affect at a given location, size and duration.
-    - Move global.stasisLandMine.stasisAffectTime to the global.modSettings
+    - Have frozen entity effect centered on it better. Maybe stick box or type will do it?
+    - Maybe I can make a few different sized entity effects and then find a way to select one for use on each frozen entity.
 
 
 Notes:

@@ -2,6 +2,7 @@ local StasisLandMine = require("scripts/stasis-land-mine")
 
 local function CreateGlobals()
     global.modSettings = global.modSettings or {} ---@class ModSettings
+
     StasisLandMine.CreateGlobals()
 end
 
