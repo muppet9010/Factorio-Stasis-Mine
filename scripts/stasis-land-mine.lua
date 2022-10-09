@@ -174,9 +174,13 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick, freezeDuration)
     end
 
     -- Show the effect on the entity.
+    local entity_selectionBox = entity.selection_box
     local affectedGraphic = entity_surface.create_entity {
         name = "stasis_mine-stasis_target_impact_effect",
-        position = { x = entity_position.x, y = entity_position.y + 0.5 }
+        position = {
+            x = entity_selectionBox.left_top.x + ((entity_selectionBox.right_bottom.x - entity_selectionBox.left_top.x) / 2),
+            y = entity_selectionBox.left_top.y + ((entity_selectionBox.right_bottom.y - entity_selectionBox.left_top.y) / 2) + 1
+        }
     }
     if freezeDuration ~= global.modSettings["stasis_time"] then
         -- Only update the TTL if it isn't the mod setting one, as the mod setting is part of the prototype already.

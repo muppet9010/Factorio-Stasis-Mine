@@ -66,10 +66,10 @@ Note: The semi colons on the end of each Lua snippet is to tell Lua where the en
 ```
 /sc
 local player = game.get_player("muppet9010");
-if player then
+if player then;
     local entityToFreeze = player.vehicle or player.character;
-    if entityToFreeze then
+    if entityToFreeze then;
         remote.call("stasis_mine", "stasis_entity", entityToFreeze, 20);
-    end
+    end;
 end
 ```
