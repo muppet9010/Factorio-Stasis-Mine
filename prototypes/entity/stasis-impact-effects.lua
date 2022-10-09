@@ -1,4 +1,4 @@
-local Utils = require("utility/utils")
+local TableUtils = require("utility.helper-utils.table-utils")
 local Constants = require("constants")
 
 -- The visual effect done on an affected entity for the duration of the effect.
@@ -26,7 +26,7 @@ local targetEffect = {
 }
 
 -- The initial detonation effect done where the stasis weapon goes off to cover its affected area briefly.
-local sourceEffect = Utils.DeepCopy(targetEffect)
+local sourceEffect = TableUtils.DeepCopy(targetEffect)
 sourceEffect.name = "stasis_mine-stasis_source_impact_effect"
 sourceEffect.animation.scale = tonumber(settings.startup["stasis_mine-stasis_effect_area"].value) / 2.5
 sourceEffect.duration = 30
@@ -34,14 +34,14 @@ sourceEffect.fade_in_duration = 0 -- Effect is so quick that fade in/out isn't v
 sourceEffect.fade_away_duration = 0 -- Effect is so quick that fade in/out isn't visible to players.
 
 -- The effect when a landmine dies. Shows a small stasis effect when a landmine is killed, like its done a mini failed stasis detonation.
-local dyingEffect = Utils.DeepCopy(targetEffect)
+local dyingEffect = TableUtils.DeepCopy(targetEffect)
 dyingEffect.name = "stasis_mine-stasis_dying_effect"
 dyingEffect.duration = 30
 dyingEffect.fade_in_duration = 0 -- Effect is so quick that fade in/out isn't visible to players.
 dyingEffect.fade_away_duration = 0 -- Effect is so quick that fade in/out isn't visible to players.
 
 -- The small regular explosion for when the landmine detonates.
-local dyingExplosion = Utils.DeepCopy(data.raw.explosion.explosion)
+local dyingExplosion = TableUtils.DeepCopy(data.raw.explosion.explosion)
 dyingExplosion.name = "stasis_min-stasis_dying_explosion"
 dyingExplosion.animations = dyingExplosion.animations[1]
 dyingExplosion.animations.shift = { 0, 1 }

@@ -3,10 +3,10 @@
 ]]
 
 local StasisLandMine = {}
-local Events = require("utility/events")
-local Utils = require("utility/utils")
-local EventScheduler = require("utility/event-scheduler")
-local Logging = require("utility.logging")
+local Events = require("utility.manager-libraries.events")
+local PositionUtils = require("utility.helper-utils.position-utils")
+local EventScheduler = require("utility.manager-libraries.event-scheduler")
+local LoggingUtils = require("utility.helper-utils.logging-utils")
 
 ---@alias Identifier uint|string
 
@@ -143,7 +143,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick, freezeDuration)
 
     global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
     local unfreezeTick = tick + freezeDuration
-    EventScheduler.ScheduleEvent(unfreezeTick, "StasisLandMine.RemoveStasisFromTarget", global.stasisLandMine.nextSchedulerId, { entity = entity, identifier = identifier })
+    EventScheduler.ScheduleEventOnce(unfreezeTick, "StasisLandMine.RemoveStasisFromTarget", global.stasisLandMine.nextSchedulerId, { entity = entity, identifier = identifier })
     local wasActive, wasDestructible, oldOperable, oldMinable = entity.active, entity.destructible, entity.operable, entity.minable
     local affectedEntityDetails = { unfreezeTick = unfreezeTick, freezeDuration = freezeDuration }
     global.stasisLandMine.affectedEntities[identifier] = affectedEntityDetails
@@ -185,7 +185,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick, freezeDuration)
 end
 
 --- Remove the stasis effect from a target.
----@param event any
+---@param event UtilityScheduledEvent_CallbackObject
 StasisLandMine.RemoveStasisFromTarget = function(event)
     local UnfreezeEntityDetails = event.data ---@type UnfreezeEntityDetails
     local affectedEntityData = global.stasisLandMine.affectedEntities[UnfreezeEntityDetails.identifier]
@@ -216,7 +216,7 @@ StasisLandMine.RemoveStasisFromTarget = function(event)
 end
 
 --- Stop a vehicle caught in the blast and keep it frozen every tick.
----@param event any
+---@param event UtilityScheduledEvent_CallbackObject
 StasisLandMine.FreezeVehicle = function(event)
     local frozenVehicleDetails = event.data ---@type FreezeVehicleDetails
     local vehicleEntity = frozenVehicleDetails.entity
@@ -300,7 +300,7 @@ StasisLandMine.FreezeVehicle = function(event)
 
     if event.tick < (frozenVehicleDetails.affectedEntityDetails.unfreezeTick - 1) then
         global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
-        EventScheduler.ScheduleEvent(event.tick + 1, "StasisLandMine.FreezeVehicle", global.stasisLandMine.nextSchedulerId, frozenVehicleDetails)
+        EventScheduler.ScheduleEventOnce(event.tick + 1, "StasisLandMine.FreezeVehicle", global.stasisLandMine.nextSchedulerId, frozenVehicleDetails)
     end
 end
 
@@ -310,7 +310,7 @@ end
 StasisLandMine.CreateFrozenTrainCarriageBlocker = function(vehicleEntity)
     local blockerEntity = vehicleEntity.surface.create_entity({ name = "stasis-train-blocker", position = vehicleEntity.position })
     if blockerEntity == nil then
-        game.print("ERROR - Stasis Mine - Failed to create blocking entity under train carriage at: " .. Logging.PositionToString(vehicleEntity.position), { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        LoggingUtils.LogPrintError("ERROR - Stasis Mine - Failed to create blocking entity under train carriage at: " .. LoggingUtils.PositionToString(vehicleEntity.position))
         return nil
     end
     blockerEntity.destructible = false
@@ -338,7 +338,7 @@ StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat)
             -- No player in vehicle, assuming the expected player has a character then set them back to the vehicle if they're close. If they don't have a character they are dead or something weird and we shouldn't set them back in to the vehicle. We check if close as this avoids us undoing any long distance teleport, so should just limit us to if the player got out of the vehicle as the vehicle will be stationary.
             local expectedCharacter = frozenVehicleDetails[seatName]--[[@as LuaPlayer]] .character
             if expectedCharacter ~= nil then
-                if Utils.GetDistance(vehicleEntity.position, expectedCharacter.position) < 5 then
+                if PositionUtils.GetDistance(vehicleEntity.position, expectedCharacter.position) < 5 then
                     -- Player is near by so put them back in to the seat.
                     setSeatOccupantFunction(expectedCharacter)
                     vehicleEntity.surface.create_entity({ name = "flying-text", position = vehicleEntity.position, text = { "message.stasis_mine-player_can_not_leave_vehicle" }, render_player_index = frozenVehicleDetails[seatName].index })
@@ -421,7 +421,7 @@ StasisLandMine.SpiderLegAffected = function(frozenSpiderLegEntity, tick, freezeD
     end
 
     if parentSpider == nil then
-        game.print("ERROR - Stasis Mine - Failed to find parent spider of affected spider leg at: " .. Logging.PositionToString(frozenSpiderLegEntity.position), { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        LoggingUtils.LogPrintError("ERROR - Stasis Mine - Failed to find parent spider of affected spider leg at: " .. LoggingUtils.LogPrintError.PositionToString(frozenSpiderLegEntity.position))
         return
     end
 
@@ -437,7 +437,7 @@ StasisLandMine.MakeEntityIdentifier = function(entity)
     if entity.unit_number ~= nil then
         return entity.unit_number
     else
-        return entity.surface.index .. "_" .. entity.name .. "_" .. Utils.FormatPositionTableToString(entity.position)
+        return entity.surface.index .. "_" .. entity.name .. "_" .. LoggingUtils.PositionToString(entity.position)
     end
 end
 
@@ -449,32 +449,32 @@ StasisLandMine.PlaceEntityInStasis_Remote = function(entityToFreeze, timeSeconds
 
     -- Check the `entityToFreeze` argument.
     if entityToFreeze == nil then
-        game.print(errorPrefix .. "No `entity` to freeze provided", { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        LoggingUtils.LogPrintError(errorPrefix .. "No `entity` to freeze provided")
         return
     elseif type(entityToFreeze) ~= "table" then
-        game.print(errorPrefix .. "Non LuaEntity provided for `entity`, got type: " .. type(entityToFreeze), { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        LoggingUtils.LogPrintError(errorPrefix .. "Non LuaEntity provided for `entity`, got type: " .. type(entityToFreeze))
         return
     elseif entityToFreeze.object_name ~= "LuaEntity" then
-        game.print(errorPrefix .. "Non LuaEntity provided for `entity`, got type: " .. entityToFreeze.object_name, { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        LoggingUtils.LogPrintError(errorPrefix .. "Non LuaEntity provided for `entity`, got type: " .. entityToFreeze.object_name)
         return
     elseif not entityToFreeze.valid then
-        game.print(errorPrefix .. "Invalid (dead) LuaEntity provided for `entity`", { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        LoggingUtils.LogPrintError(errorPrefix .. "Invalid (dead) LuaEntity provided for `entity`")
         return
     end
 
     -- Check the `entityToFreeze` argument.
     if timeSeconds == nil then
-        game.print(errorPrefix .. "No `time` to freeze provided", { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        LoggingUtils.LogPrintError(errorPrefix .. "No `time` to freeze provided")
         return
     end
     local timeSeconds_number = tonumber(timeSeconds)
     if timeSeconds_number == nil then
-        game.print(errorPrefix .. "None number provided for `time`, got: " .. timeSeconds, { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        LoggingUtils.LogPrintError(errorPrefix .. "None number provided for `time`, got: " .. timeSeconds)
         return
     end
     local timeSeconds_number = math.floor(timeSeconds_number)
     if timeSeconds_number < 5 then
-        game.print(errorPrefix .. "Stasis `time` must be 5 seconds or greater, got: " .. tostring(timeSeconds_number), { r = 1.0, g = 0.0, b = 0.0, a = 1.0 })
+        LoggingUtils.LogPrintError(errorPrefix .. "Stasis `time` must be 5 seconds or greater, got: " .. tostring(timeSeconds_number))
         return
     end ---@cast timeSeconds_number uint
     local timeTicks = timeSeconds_number * 60 ---@type uint

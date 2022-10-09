@@ -1,6 +1,6 @@
-local Utils = require("utility.utils")
+local TableUtils = require("utility.helper-utils.table-utils")
 
-local StasisRocket = Utils.DeepCopy(data.raw["projectile"]["rocket"])
+local StasisRocket = TableUtils.DeepCopy(data.raw["projectile"]["rocket"])
 StasisRocket.name = "stasis-rocket"
 StasisRocket.action = {
     type = "direct",

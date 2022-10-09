@@ -1,6 +1,6 @@
-local Utils = require("utility.utils")
+local TableUtils = require("utility.helper-utils.table-utils")
 
-local StasisGrenade = Utils.DeepCopy(data.raw["projectile"]["grenade"])
+local StasisGrenade = TableUtils.DeepCopy(data.raw["projectile"]["grenade"])
 StasisGrenade.name = "stasis-grenade"
 StasisGrenade.action = {
     type = "direct",
