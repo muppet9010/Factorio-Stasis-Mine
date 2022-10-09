@@ -3,8 +3,9 @@ local Constants = require("constants")
 
 -- The visual effect done on an affected entity for the duration of the effect.
 local targetEffect = {
-    type = "trivial-smoke",
+    type = "smoke-with-trigger",
     name = "stasis_mine-stasis_target_impact_effect",
+    flags = { "placeable-off-grid" },
     animation = {
         filename = Constants.AssetModName .. "/graphics/entity/stasis_impact_effect-hr.png",
         flags = { "trilinear-filtering" },

@@ -6,6 +6,7 @@ Future:
     - Add: add a remote interface to create a stasis affect at a given location, size and duration.
     - Have frozen entity effect centered on it better. Maybe stick box or type will do it?
     - Maybe I can make a few different sized entity effects and then find a way to select one for use on each frozen entity.
+    - If an affected player character or a vehicle is teleported the effect graphic and light should go with it. Don't worry about anything else. This assumes that the teleported thing is still affected, i.e. a character teleported out of a vehicle, is it still affected?
 
 
 Notes:

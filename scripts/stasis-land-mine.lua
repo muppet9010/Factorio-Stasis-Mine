@@ -173,11 +173,14 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick, freezeDuration)
 
     -- Show the effect on the entity.
     local entity_position, entity_surface = entity.position, entity.surface
-    --TODO: this smoke needs to have a variable length. Try using a smoke-with-trigger rather than trivial-smoke as then we can set `time_to_live` on the LuaEntity once created.
-    entity_surface.create_trivial_smoke {
+    local affectedGraphic = entity_surface.create_entity {
         name = "stasis_mine-stasis_target_impact_effect",
-        position = Utils.ApplyOffsetToPosition(entity_position, { x = 0, y = -0.5 })
+        position = { x = entity_position.x, y = entity_position.y + 0.5 }
     }
+    if freezeDuration ~= global.modSettings["stasis_time"] then
+        -- Only update the TTL if it isn't the mod setting one, as the mod setting is part of the prototype already.
+        affectedGraphic.time_to_live = freezeDuration
+    end
     rendering.draw_light({ sprite = "utility/light_medium", target = entity_position, surface = entity_surface, time_to_live = freezeDuration - 25, color = StasisLandMineLightColor, scale = 0.5, intensity = 0.25 }) -- TTL on light is based on when the effect visually significantly fades away.
 end
 
