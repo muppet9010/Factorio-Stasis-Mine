@@ -13,6 +13,9 @@ local LoggingUtils = require("utility.helper-utils.logging-utils")
 ---@class AffectedEntityDetails
 ---@field unfreezeTick uint
 ---@field freezeDuration uint # Will be 300 or greater.
+---@field entity LuaEntity
+---@field initialSurface LuaSurface # The surface of the entity when the effect started. Not updated if the entity is teleported.
+---@field initialPosition MapPosition # The position of the entity when the effect started. Not updated if the entity is teleported.
 ---@field wasActive boolean
 ---@field wasDestructible boolean
 ---@field oldOperable boolean
@@ -20,7 +23,6 @@ local LoggingUtils = require("utility.helper-utils.logging-utils")
 ---@field frozenVehicleDetails FreezeVehicleDetails|nil
 
 ---@class FreezeVehicleDetails
----@field entity LuaEntity
 ---@field initialFreeze boolean # If this loop of the Frozen Vehicle check is the first one for the vehicle or not.
 ---@field vehicleType string
 ---@field affectedEntityDetails AffectedEntityDetails
@@ -99,11 +101,11 @@ StasisLandMine.OnScriptTriggerEffect = function(event)
         -- Is the detonation itself.
         local position
         if event.effect_id == "stasis_land_mine_source" then
-            position = event.source_entity.position
+            position = event.source_position
         else
             -- CODE NOTE: for `event.effect_id == "stasis_rocket_source"` then `event.source_entity` is only populated if the target is still alive at the time of rocket detonation. `event.target_position` is always populated where the rocket explodes.
-            position = event.target_position ---@cast position - nil
-        end
+            position = event.target_position
+        end ---@cast position - nil
         -- TTL on lights is based on when the effect visually significantly fades away.
         rendering.draw_light({ sprite = "utility/light_medium", target = position, surface = event.surface_index, time_to_live = 25, color = StasisLandMineLightColor, scale = 2.0, intensity = 0.5 })
         rendering.draw_light({ sprite = "utility/light_medium", target = position, surface = event.surface_index, time_to_live = 25, color = StasisLandMineLightColor, scale = (global.modSettings["stasis_effect_area"] / 2), intensity = 0.5 })
@@ -115,17 +117,17 @@ end
 ---@param tick uint
 ---@param freezeDuration uint # Will be 300 ticks or greater.
 StasisLandMine.ApplyStasisToTarget = function(entity, tick, freezeDuration)
-    local entity_type = entity.type
+    local entity_type, entity_name, entity_position, entity_surface = entity.type, entity.name, entity.position, entity.surface
 
     -- Exclude some entities from being affected.
-    if entity.name == "stasis-land-mine" then
+    if entity_name == "stasis-land-mine" then
         return
     end
 
     -- Handle spider legs specially, but we always finish their processing as they themselves aren't frozen.
     if entity_type == "spider-leg" then
         if global.modSettings.spidertrons_affected then
-            StasisLandMine.SpiderLegAffected(entity, tick, freezeDuration)
+            StasisLandMine.SpiderLegAffected(entity, tick, freezeDuration, entity_surface, entity_position)
         end
         return
     end
@@ -136,7 +138,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick, freezeDuration)
     end
 
     -- Only affect units not already in a stasis.
-    local identifier = StasisLandMine.MakeEntityIdentifier(entity)
+    local identifier = StasisLandMine.MakeEntityIdentifier(entity, entity_name, entity_surface.index, entity_position)
     if global.stasisLandMine.affectedEntities[identifier] ~= nil then
         return
     end
@@ -145,7 +147,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick, freezeDuration)
     local unfreezeTick = tick + freezeDuration
     EventScheduler.ScheduleEventOnce(unfreezeTick, "StasisLandMine.RemoveStasisFromTarget", global.stasisLandMine.nextSchedulerId, { entity = entity, identifier = identifier })
     local wasActive, wasDestructible, oldOperable, oldMinable = entity.active, entity.destructible, entity.operable, entity.minable
-    local affectedEntityDetails = { unfreezeTick = unfreezeTick, freezeDuration = freezeDuration }
+    local affectedEntityDetails = { unfreezeTick = unfreezeTick, freezeDuration = freezeDuration, entity = entity, initialSurface = entity_surface, initialPosition = entity_position }
     global.stasisLandMine.affectedEntities[identifier] = affectedEntityDetails
 
     if wasActive then
@@ -172,7 +174,6 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick, freezeDuration)
     end
 
     -- Show the effect on the entity.
-    local entity_position, entity_surface = entity.position, entity.surface
     local affectedGraphic = entity_surface.create_entity {
         name = "stasis_mine-stasis_target_impact_effect",
         position = { x = entity_position.x, y = entity_position.y + 0.5 }
@@ -219,7 +220,7 @@ end
 ---@param event UtilityScheduledEvent_CallbackObject
 StasisLandMine.FreezeVehicle = function(event)
     local frozenVehicleDetails = event.data ---@type FreezeVehicleDetails
-    local vehicleEntity = frozenVehicleDetails.entity
+    local vehicleEntity = frozenVehicleDetails.affectedEntityDetails.entity
     if vehicleEntity == nil or (not vehicleEntity.valid) then
         return
     end
@@ -250,7 +251,7 @@ StasisLandMine.FreezeVehicle = function(event)
             end
 
             -- Each train carriage that is frozen needs to create and record its own blocker entity.
-            frozenVehicleDetails.trainBlockerEntity = StasisLandMine.CreateFrozenTrainCarriageBlocker(vehicleEntity)
+            frozenVehicleDetails.trainBlockerEntity = StasisLandMine.CreateFrozenTrainCarriageBlocker(frozenVehicleDetails.affectedEntityDetails)
 
             -- Capture if there's a driver in the vehicle. Trains only have 1 player slot.
             local driver = vehicleEntity.get_driver()
@@ -305,12 +306,12 @@ StasisLandMine.FreezeVehicle = function(event)
 end
 
 --- Create the blocker entity for a frozen train carriage.
----@param vehicleEntity LuaEntity
+---@param affectedEntityDetails AffectedEntityDetails
 ---@return LuaEntity|nil blockerEntity
-StasisLandMine.CreateFrozenTrainCarriageBlocker = function(vehicleEntity)
-    local blockerEntity = vehicleEntity.surface.create_entity({ name = "stasis-train-blocker", position = vehicleEntity.position })
+StasisLandMine.CreateFrozenTrainCarriageBlocker = function(affectedEntityDetails)
+    local blockerEntity = affectedEntityDetails.initialSurface.create_entity({ name = "stasis-train-blocker", position = affectedEntityDetails.initialPosition })
     if blockerEntity == nil then
-        LoggingUtils.LogPrintError("ERROR - Stasis Mine - Failed to create blocking entity under train carriage at: " .. LoggingUtils.PositionToString(vehicleEntity.position))
+        LoggingUtils.LogPrintError("ERROR - Stasis Mine - Failed to create blocking entity under train carriage at: " .. LoggingUtils.PositionToString(affectedEntityDetails.initialPosition))
         return nil
     end
     blockerEntity.destructible = false
@@ -321,7 +322,8 @@ end
 ---@param frozenVehicleDetails FreezeVehicleDetails
 ---@param seat "driver"|"passenger"
 StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat)
-    local vehicleEntity = frozenVehicleDetails.entity
+    --- CODE NOTE: While this is called every tick a teleported vehicle will only have it's surface and position data obtained in the case something is wrong. So hopefully very rarely. For this reason we don;t use the cache of these or track/update the cache.
+    local vehicleEntity = frozenVehicleDetails.affectedEntityDetails.entity
     local seatName, currentSeatOccupant, setSeatOccupantFunction
     if seat == "driver" then
         seatName = "driver"
@@ -338,10 +340,11 @@ StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat)
             -- No player in vehicle, assuming the expected player has a character then set them back to the vehicle if they're close. If they don't have a character they are dead or something weird and we shouldn't set them back in to the vehicle. We check if close as this avoids us undoing any long distance teleport, so should just limit us to if the player got out of the vehicle as the vehicle will be stationary.
             local expectedCharacter = frozenVehicleDetails[seatName]--[[@as LuaPlayer]] .character
             if expectedCharacter ~= nil then
-                if PositionUtils.GetDistance(vehicleEntity.position, expectedCharacter.position) < 5 then
+                local vehicleEntity_position = vehicleEntity.position
+                if PositionUtils.GetDistance(vehicleEntity_position, expectedCharacter.position) < 5 then
                     -- Player is near by so put them back in to the seat.
                     setSeatOccupantFunction(expectedCharacter)
-                    vehicleEntity.surface.create_entity({ name = "flying-text", position = vehicleEntity.position, text = { "message.stasis_mine-player_can_not_leave_vehicle" }, render_player_index = frozenVehicleDetails[seatName].index })
+                    vehicleEntity.surface.create_entity({ name = "flying-text", position = vehicleEntity_position, text = { "message.stasis_mine-player_can_not_leave_vehicle" }, render_player_index = frozenVehicleDetails[seatName].index })
                 else
                     -- Player is too far away, so forget they where in the seat. Otherwise if they walk near the vehicle they will be snapped back in to it.
                     frozenVehicleDetails[seatName] = nil ---@diagnostic disable-line:no-unknown # no nicer work around for this as its inherently not typed to set an unknown field in an object: https://github.com/sumneko/lua-language-server/discussions/1616
@@ -366,10 +369,14 @@ StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat)
                     frozenVehicleDetails.trainBlockerEntity.destroy({ raise_destroy = false })
                 end
                 currentSeatOccupant.driving = false
+                local vehicleEntity_surface, vehicleEntity_position = vehicleEntity.surface, vehicleEntity.position
                 if frozenVehicleDetails.trainBlockerEntity ~= nil then
-                    frozenVehicleDetails.trainBlockerEntity = StasisLandMine.CreateFrozenTrainCarriageBlocker(vehicleEntity)
+                    -- Update the surface and position cache in case the train has been teleported.
+                    frozenVehicleDetails.affectedEntityDetails.initialSurface = vehicleEntity_surface
+                    frozenVehicleDetails.affectedEntityDetails.initialPosition = vehicleEntity_position
+                    frozenVehicleDetails.trainBlockerEntity = StasisLandMine.CreateFrozenTrainCarriageBlocker(frozenVehicleDetails.affectedEntityDetails)
                 end
-                vehicleEntity.surface.create_entity({ name = "flying-text", position = vehicleEntity.position, text = { "message.stasis_mine-player_can_not_enter_vehicle" }, render_player_index = currentSeatOccupant.index })
+                vehicleEntity_surface.create_entity({ name = "flying-text", position = vehicleEntity_position, text = { "message.stasis_mine-player_can_not_enter_vehicle" }, render_player_index = currentSeatOccupant.index })
             end
         end
     end
@@ -378,7 +385,7 @@ end
 --- Release a vehicle caught in the blast from being frozen.
 ---@param frozenVehicleDetails FreezeVehicleDetails
 StasisLandMine.UnFreezeVehicle = function(frozenVehicleDetails)
-    local entity = frozenVehicleDetails.entity
+    local entity = frozenVehicleDetails.affectedEntityDetails.entity
 
     -- Is the primary frozen carriage for the train.
     if frozenVehicleDetails.trainOldSpeed ~= nil then
@@ -404,9 +411,11 @@ end
 ---@param frozenSpiderLegEntity LuaEntity
 ---@param tick uint
 ---@param freezeDuration uint # Will be 300 ticks or greater.
-StasisLandMine.SpiderLegAffected = function(frozenSpiderLegEntity, tick, freezeDuration)
+---@param frozenSpiderLegEntity_surface LuaSurface
+---@param frozenSpiderLegEntity_position MapPosition
+StasisLandMine.SpiderLegAffected = function(frozenSpiderLegEntity, tick, freezeDuration, frozenSpiderLegEntity_surface, frozenSpiderLegEntity_position)
     -- Radius of 20 should be enough to find any real sized spider from its leg.
-    local nearBySpiders = frozenSpiderLegEntity.surface.find_entities_filtered({ type = "spider-vehicle", position = frozenSpiderLegEntity.position, radius = 20 })
+    local nearBySpiders = frozenSpiderLegEntity_surface.find_entities_filtered({ type = "spider-vehicle", position = frozenSpiderLegEntity_position, radius = 20 })
     local parentSpider
     for _, spider in pairs(nearBySpiders) do
         for _, leg in pairs(spider.get_spider_legs()) do
@@ -421,7 +430,7 @@ StasisLandMine.SpiderLegAffected = function(frozenSpiderLegEntity, tick, freezeD
     end
 
     if parentSpider == nil then
-        LoggingUtils.LogPrintError("ERROR - Stasis Mine - Failed to find parent spider of affected spider leg at: " .. LoggingUtils.LogPrintError.PositionToString(frozenSpiderLegEntity.position))
+        LoggingUtils.LogPrintError("ERROR - Stasis Mine - Failed to find parent spider of affected spider leg at: " .. LoggingUtils.LogPrintError.PositionToString(frozenSpiderLegEntity_position))
         return
     end
 
@@ -432,12 +441,15 @@ end
 
 --- Get a unique ID for an entity. Either its unit_number or a string with unique details.
 ---@param entity LuaEntity
+---@param entity_name string
+---@param surface_index uint
+---@param entity_position MapPosition
 ---@return Identifier
-StasisLandMine.MakeEntityIdentifier = function(entity)
+StasisLandMine.MakeEntityIdentifier = function(entity, entity_name, surface_index, entity_position)
     if entity.unit_number ~= nil then
         return entity.unit_number
     else
-        return entity.surface.index .. "_" .. entity.name .. "_" .. LoggingUtils.PositionToString(entity.position)
+        return surface_index .. "_" .. entity_name .. "_" .. LoggingUtils.PositionToString(entity_position)
     end
 end
 
