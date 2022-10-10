@@ -23,6 +23,8 @@ local LoggingUtils = require("utility.helper-utils.logging-utils")
 ---@field oldOperable boolean
 ---@field oldMinable boolean
 ---@field frozenVehicleDetails FreezeVehicleDetails|nil
+---@field affectedGraphic LuaEntity
+---@field affectedLightId uint64|nil # Rendered light Id if there's a light. We don't make one if there's not enough time left.
 
 ---@class FreezeVehicleDetails
 ---@field vehicleType string
@@ -179,19 +181,37 @@ StasisLandMine.ApplyStasisToTarget = function(entity, currentTick, freezeDuratio
     -- TODO: if its a player character then track them and move any stasis effect if they are teleported.
 
     -- Show the effect on the entity.
+    affectedEntityDetails.affectedGraphic, affectedEntityDetails.affectedLightId = StasisLandMine.CreateAffectedEntityEffects(entity, entity_position, entity_surface, freezeDuration)
+end
+
+--- Create the affected entity light.
+---@param entity LuaEntity
+---@param entityPosition MapPosition
+---@param entitySurface LuaSurface
+---@param freezeDuration uint
+---@return LuaEntity affectedGraphic
+---@return uint64|nil renderedLightId
+StasisLandMine.CreateAffectedEntityEffects = function(entity, entityPosition, entitySurface, freezeDuration)
     local entity_selectionBox = entity.selection_box
-    local affectedGraphic = entity_surface.create_entity {
+    local affectedGraphic = entitySurface.create_entity {
         name = "stasis_mine-stasis_target_impact_effect",
         position = {
             x = entity_selectionBox.left_top.x + ((entity_selectionBox.right_bottom.x - entity_selectionBox.left_top.x) / 2),
             y = entity_selectionBox.left_top.y + ((entity_selectionBox.right_bottom.y - entity_selectionBox.left_top.y) / 2) + 1
         }
-    }
+    } ---@cast affectedGraphic - nil
     if freezeDuration ~= global.modSettings["stasis_ticks"] then
         -- Only update the TTL if it isn't the mod setting one, as the mod setting is part of the prototype already.
         affectedGraphic.time_to_live = freezeDuration
     end
-    rendering.draw_light({ sprite = "utility/light_medium", target = entity_position, surface = entity_surface, time_to_live = freezeDuration - 25, color = StasisLandMineLightColor, scale = 0.5, intensity = 0.25 }) -- TTL on light is based on when the effect visually significantly fades away.
+
+    local lightRenderId
+    local lightDuration = freezeDuration - 25
+    if lightDuration > 0 then
+        lightRenderId = rendering.draw_light({ sprite = "utility/light_medium", target = entityPosition, surface = entitySurface, time_to_live = freezeDuration - 25, color = StasisLandMineLightColor, scale = 0.5, intensity = 0.25 }) -- TTL on light is based on when the effect visually significantly fades away.
+    end
+
+    return affectedGraphic, lightRenderId
 end
 
 --- Remove the stasis effect from a target.
@@ -309,10 +329,10 @@ StasisLandMine.FreezeVehicle = function(event)
 
     -- Check that any players in the vehicles are as they were at the start (not got in/out).
     -- Some disabled vehicles will prevent players from getting out, but it's patchy so just check all.
-    StasisLandMine.CheckVehicleSeat(frozenVehicleDetails, "driver")
+    StasisLandMine.CheckVehicleSeat(frozenVehicleDetails, "driver", event.tick)
     if frozenVehicleDetails.vehicleType == "car" or frozenVehicleDetails.vehicleType == "spider-vehicle" then
         -- Only these vehicle types can have passengers.
-        StasisLandMine.CheckVehicleSeat(frozenVehicleDetails, "passenger")
+        StasisLandMine.CheckVehicleSeat(frozenVehicleDetails, "passenger", event.tick)
     end
 
     if event.tick < (frozenVehicleDetails.affectedEntityDetails.unfreezeTick - 1) then
@@ -337,9 +357,11 @@ end
 --- Check a vehicles seats are as expected.
 ---@param frozenVehicleDetails FreezeVehicleDetails
 ---@param seat "driver"|"passenger"
-StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat)
+---@param currentTick uint
+StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat, currentTick)
     --- CODE NOTE: While this is called every tick a teleported vehicle will only have it's surface and position data obtained in the case something is wrong. So hopefully very rarely. For this reason we don;t use the cache of these or track/update the cache.
-    local vehicleEntity = frozenVehicleDetails.affectedEntityDetails.entity
+    local affectedEntityDetails = frozenVehicleDetails.affectedEntityDetails
+    local vehicleEntity = affectedEntityDetails.entity
     local seatName, currentSeatOccupant
     if seat == "driver" then
         seatName = "driver"
@@ -351,6 +373,26 @@ StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat)
     if frozenVehicleDetails[seatName] ~= nil then
         -- There should still be a player in the vehicle.
 
+        -- Check if the vehicle moved.
+        local vehicleMoved = false
+        local newPosition, newSurface = vehicleEntity.position, vehicleEntity.surface
+        if newPosition.x ~= affectedEntityDetails.initialPosition.x or newPosition.y ~= affectedEntityDetails.initialPosition.y or newSurface ~= affectedEntityDetails.initialSurface then
+            -- Vehicle has been teleported, so remove the old graphic and light, and then make new ones.
+            local freezeDuration = affectedEntityDetails.unfreezeTick - currentTick
+            affectedEntityDetails.affectedGraphic.destroy()
+            if affectedEntityDetails.affectedLightId ~= nil then
+                -- Destroy the old light if there was one.
+                rendering.destroy(affectedEntityDetails.affectedLightId)
+            end
+            affectedEntityDetails.affectedGraphic, affectedEntityDetails.affectedLightId = StasisLandMine.CreateAffectedEntityEffects(vehicleEntity, newPosition, newSurface, freezeDuration)
+
+            -- Update the cached details of this vehicle for the moved graphic.
+            affectedEntityDetails.initialPosition = newPosition
+            affectedEntityDetails.initialSurface = newSurface
+
+            vehicleMoved = true
+        end
+
         -- Check if there's currently a player in the vehicle and handle.
         if currentSeatOccupant == nil then
             -- No player in vehicle.
@@ -358,32 +400,44 @@ StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat)
             -- Assuming the expected player has a character then set them back to the vehicle if they're close. If they don't have a character they are dead or something weird and we shouldn't set them back in to the vehicle. We check if close as this avoids us undoing any long distance teleport, so should just limit us to if the player got out of the vehicle as the vehicle will be stationary.
             local expectedCharacter = frozenVehicleDetails[seatName]--[[@as LuaPlayer]] .character
             if expectedCharacter ~= nil then
-                local vehicleEntity_position = vehicleEntity.position
-                if PositionUtils.GetDistance(vehicleEntity_position, expectedCharacter.position) < 5 then
+                if PositionUtils.GetDistance(newPosition, expectedCharacter.position) < 5 then
                     -- Player is near by so put them back in to the seat.
                     if seat == "driver" then
                         vehicleEntity.set_driver(expectedCharacter)
                     else
                         vehicleEntity.set_passenger(expectedCharacter)
                     end
-                    vehicleEntity.surface.create_entity({ name = "flying-text", position = vehicleEntity_position, text = { "message.stasis_mine-player_can_not_leave_vehicle" }, render_player_index = frozenVehicleDetails[seatName].index })
+                    newSurface.create_entity({ name = "flying-text", position = newPosition, text = { "message.stasis_mine-player_can_not_leave_vehicle" }, render_player_index = frozenVehicleDetails[seatName].index })
                 else
                     -- Player is too far away, so forget they where in the seat. Otherwise if they walk near the vehicle they will be snapped back in to it.
                     frozenVehicleDetails[seatName] = nil ---@diagnostic disable-line:no-unknown # no nicer work around for this as its inherently not typed to set an unknown field in an object: https://github.com/sumneko/lua-language-server/discussions/1616
 
-                    -- TODO: freeze the player as they were in the vehicle. Se their time as the remaining stasis time.
+                    -- Freeze the player as they were in the vehicle. Se their time as the remaining stasis time.
+                    StasisLandMine.ApplyStasisToTarget(expectedCharacter, currentTick, affectedEntityDetails.unfreezeTick - currentTick)
                 end
             end
-
-            -- TODO: check if the vehicle moved, if it did update the stasis graphic.
         else
-            -- Player still in vehicle
+            -- The player is still in the vehicle.
 
-            -- TODO: check if the vehicle moved, if it did update the stasis graphic.
+            if vehicleMoved then
+                -- The vehicles moved, but the players view will have been left behind. This will move the players view next to the vehicle, rather than directly on top of it.
+                local expectedCharacter = frozenVehicleDetails[seatName]--[[@as LuaPlayer]] .character
+                if expectedCharacter ~= nil then
+                    if seat == "driver" then
+                        vehicleEntity.set_driver(nil)
+                        vehicleEntity.set_driver(expectedCharacter)
+                    else
+                        vehicleEntity.set_passenger(nil)
+                        vehicleEntity.set_passenger(expectedCharacter)
+                    end
+                end
+            end
         end
     else
         -- There shouldn't be a player in the vehicle.
+
         if currentSeatOccupant ~= nil then
+            -- There is a player in the vehicle, this isn't right.
             local currentSeatCharacter
             if not currentSeatOccupant.is_player() then
                 ---@cast currentSeatOccupant LuaEntity
@@ -407,6 +461,25 @@ StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat)
                     frozenVehicleDetails.trainBlockerEntity = StasisLandMine.CreateFrozenTrainCarriageBlocker(frozenVehicleDetails.affectedEntityDetails)
                 end
                 vehicleEntity_surface.create_entity({ name = "flying-text", position = vehicleEntity_position, text = { "message.stasis_mine-player_can_not_enter_vehicle" }, render_player_index = currentSeatOccupant.index })
+
+                -- Check if the character was disabled when trying to get it.
+                -- TODO - not entirely sure this is needed once we track affected characters on their own. As we will need to handle them getting in to non stasis affected vehicles as well.
+                local character_affectedEntityDetails = global.stasisLandMine.affectedEntities[currentSeatCharacter.unit_number--[[@as Identifier]] ]
+                if character_affectedEntityDetails ~= nil then
+                    -- As they went in and out of the vehicle we need to update their affected graphics as they will have moved locations, despite being frozen the whole time.
+                    local freezeDuration = character_affectedEntityDetails.unfreezeTick - currentTick
+                    local character_newPosition, character_newSurface = currentSeatCharacter.position, currentSeatCharacter.surface
+                    character_affectedEntityDetails.affectedGraphic.destroy()
+                    if character_affectedEntityDetails.affectedLightId ~= nil then
+                        -- Destroy the old light if there was one.
+                        rendering.destroy(character_affectedEntityDetails.affectedLightId)
+                    end
+                    character_affectedEntityDetails.affectedGraphic, character_affectedEntityDetails.affectedLightId = StasisLandMine.CreateAffectedEntityEffects(currentSeatCharacter, character_newPosition, character_newSurface, freezeDuration)
+
+                    -- Update the cached details of this vehicle for the moved graphic.
+                    character_affectedEntityDetails.initialPosition = character_newPosition
+                    character_affectedEntityDetails.initialSurface = character_newSurface
+                end
             end
         end
     end

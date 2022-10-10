@@ -11,10 +11,12 @@ Date: 2022-10-XXX
     - Trains are now entirely affected when one or more carriages are affected by stasis (mod setting depending). Now a fully affected train has stasis applied to all carriages in the train and it is fully stopped and prevented from moving for the duration of the effect. This is as a partially affected train doesn't behave nicely and would have lots of edge cases.
     - Players are not able to get in/out of vehicles in stasis. This is managed by script and not permission groups.
     - Renamed mod to Stasis Weapons.
+    - If a player in a vehicle affected by stasis is teleported out of the vehicle, that player becomes directly affected by stasis as well.
   Bugfixes:
     - Trains are no longer mostly stopped. They are fully stopped.
     - Stasis weapons don't show on bonuses lists as they aren't affected by weapon upgrades.
     - Stasis effect graphic will appear more centered on things (middle of selection box, rather than entities position).
+    - A teleported vehicle in stasis now has the player's view updated to the new location, rather than left at the old vehicles location. This bug was from default Factorio logic for a disabled vehicle.
   Info:
 ---------------------------------------------------------------------------------------------------
 Version: 20.0.4
