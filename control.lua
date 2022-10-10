@@ -9,7 +9,8 @@ end
 local function OnLoad()
     remote.remove_interface("stasis_weapons")
     remote.add_interface("stasis_weapons", {
-        stasis_entity = StasisLandMine.PlaceEntityInStasis_Remote
+        stasis_entity = StasisLandMine.PlaceEntityInStasis_Remote,
+        stasis_effect = StasisLandMine.CreateStasisEffect_Remote
     })
 
     StasisLandMine.OnLoad()

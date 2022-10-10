@@ -55,9 +55,9 @@ StasisLandMine.OnLoad = function()
 end
 
 StasisLandMine.OnStartup = function()
-    global.modSettings["stasis_time"] = tonumber(settings.startup["stasis_mine-stasis_time"].value) --[[@as uint]] * 60
-    global.modSettings["stasis_effect_area"] = tonumber(settings.startup["stasis_mine-stasis_effect_area"].value) --[[@as float]]
-    -- The mod setting value is technically a uint, but everywhere we use it wants a float.
+    global.modSettings["stasis_ticks"] = tonumber(settings.startup["stasis_mine-stasis_time"].value) --[[@as uint]] * 60
+    global.modSettings["stasis_effect_area"] = tonumber(settings.startup["stasis_mine-stasis_effect_area"].value) --[[@as uint]]
+    global.modSettings["stasis_force_effected"] = settings.startup["stasis_mine-stasis_force_effected"].value --[[@as "all"|"enemy"]]
 
     -- Ensure any disabled stasis weapon types are applied to forces. They might have been enabled before and are now disabled.
     if settings.startup["stasis_mine-disable_stasis_mine"].value --[[@as boolean]] then
@@ -93,12 +93,14 @@ StasisLandMine.DisableStasisWeaponType = function(name)
     end
 end
 
---- Called when any Lua Script Trigger effect occurs. Find if it's one of ours and call the handler if so.
+--- Called when any Lua Script Trigger effect occurs. Find if it's one of ours and call the handler if so. This function is also called by internal remote interface handlers.
 ---@param event EventData.on_script_trigger_effect
-StasisLandMine.OnScriptTriggerEffect = function(event)
+---@param stasisTicks uint|nil # Only passed in when the event is called internally as part of a remote call.
+---@param effectArea uint|nil # Only passed in when the event is called internally as part of a remote call.
+StasisLandMine.OnScriptTriggerEffect = function(event, stasisTicks, effectArea)
     if event.effect_id == "stasis_affected_target" and event.target_entity ~= nil then
         -- Is a potential target to be frozen.
-        StasisLandMine.ApplyStasisToTarget(event.target_entity, event.tick, global.modSettings["stasis_time"])
+        StasisLandMine.ApplyStasisToTarget(event.target_entity, event.tick, stasisTicks or global.modSettings["stasis_ticks"])
     elseif event.effect_id == "stasis_land_mine_source" or event.effect_id == "stasis_rocket_source" or event.effect_id == "stasis_grenade_source" then
         -- Is the detonation itself.
         local position
@@ -110,15 +112,15 @@ StasisLandMine.OnScriptTriggerEffect = function(event)
         end ---@cast position - nil
         -- TTL on lights is based on when the effect visually significantly fades away.
         rendering.draw_light({ sprite = "utility/light_medium", target = position, surface = event.surface_index, time_to_live = 25, color = StasisLandMineLightColor, scale = 2.0, intensity = 0.5 })
-        rendering.draw_light({ sprite = "utility/light_medium", target = position, surface = event.surface_index, time_to_live = 25, color = StasisLandMineLightColor, scale = (global.modSettings["stasis_effect_area"] / 2), intensity = 0.5 })
+        rendering.draw_light({ sprite = "utility/light_medium", target = position, surface = event.surface_index, time_to_live = 25, color = StasisLandMineLightColor, scale = ((effectArea or global.modSettings["stasis_effect_area"]) / 2) --[[@as float]] , intensity = 0.5 })
     end
 end
 
 --- Apply the stasis effect to an entity caught in the blast.
 ---@param entity LuaEntity
----@param tick uint
+---@param currentTick uint
 ---@param freezeDuration uint # Will be 300 ticks or greater.
-StasisLandMine.ApplyStasisToTarget = function(entity, tick, freezeDuration)
+StasisLandMine.ApplyStasisToTarget = function(entity, currentTick, freezeDuration)
     local entity_type, entity_name, entity_position, entity_surface = entity.type, entity.name, entity.position, entity.surface
 
     -- Exclude some entities from being affected.
@@ -129,7 +131,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick, freezeDuration)
     -- Handle spider legs specially, but we always finish their processing as they themselves aren't frozen.
     if entity_type == "spider-leg" then
         if global.modSettings.spidertrons_affected then
-            StasisLandMine.SpiderLegAffected(entity, tick, freezeDuration, entity_surface, entity_position)
+            StasisLandMine.SpiderLegAffected(entity, currentTick, freezeDuration, entity_surface, entity_position)
         end
         return
     end
@@ -146,7 +148,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick, freezeDuration)
     end
 
     global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
-    local unfreezeTick = tick + freezeDuration
+    local unfreezeTick = currentTick + freezeDuration
     EventScheduler.ScheduleEventOnce(unfreezeTick, "StasisLandMine.RemoveStasisFromTarget", global.stasisLandMine.nextSchedulerId, { entity = entity, identifier = identifier })
     local wasActive, wasDestructible, oldOperable, oldMinable = entity.active, entity.destructible, entity.operable, entity.minable
     local affectedEntityDetails = { unfreezeTick = unfreezeTick, freezeDuration = freezeDuration, entity = entity, initialSurface = entity_surface, initialPosition = entity_position }
@@ -172,7 +174,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick, freezeDuration)
     -- Freeze all vehicle types specially.
     if entity_type == "locomotive" or entity_type == "cargo-wagon" or entity_type == "fluid-wagon" or entity_type == "artillery-wagon" or entity_type == "car" or entity_type == "spider-vehicle" then
         affectedEntityDetails.frozenVehicleDetails = { entity = entity, vehicleType = entity_type, affectedEntityDetails = affectedEntityDetails, initialFreeze = true }
-        StasisLandMine.FreezeVehicle({ tick = tick, data = affectedEntityDetails.frozenVehicleDetails })
+        StasisLandMine.FreezeVehicle({ tick = currentTick, data = affectedEntityDetails.frozenVehicleDetails })
     end
 
     -- Show the effect on the entity.
@@ -184,7 +186,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity, tick, freezeDuration)
             y = entity_selectionBox.left_top.y + ((entity_selectionBox.right_bottom.y - entity_selectionBox.left_top.y) / 2) + 1
         }
     }
-    if freezeDuration ~= global.modSettings["stasis_time"] then
+    if freezeDuration ~= global.modSettings["stasis_ticks"] then
         -- Only update the TTL if it isn't the mod setting one, as the mod setting is part of the prototype already.
         affectedGraphic.time_to_live = freezeDuration
     end
@@ -417,11 +419,11 @@ end
 
 --- Handle when a spider leg is affected by a stasis effect and freeze the parent spider.
 ---@param frozenSpiderLegEntity LuaEntity
----@param tick uint
+---@param currentTick uint
 ---@param freezeDuration uint # Will be 300 ticks or greater.
 ---@param frozenSpiderLegEntity_surface LuaSurface
 ---@param frozenSpiderLegEntity_position MapPosition
-StasisLandMine.SpiderLegAffected = function(frozenSpiderLegEntity, tick, freezeDuration, frozenSpiderLegEntity_surface, frozenSpiderLegEntity_position)
+StasisLandMine.SpiderLegAffected = function(frozenSpiderLegEntity, currentTick, freezeDuration, frozenSpiderLegEntity_surface, frozenSpiderLegEntity_position)
     -- Radius of 20 should be enough to find any real sized spider from its leg.
     local nearBySpiders = frozenSpiderLegEntity_surface.find_entities_filtered({ type = "spider-vehicle", position = frozenSpiderLegEntity_position, radius = 20 })
     local parentSpider
@@ -443,7 +445,7 @@ StasisLandMine.SpiderLegAffected = function(frozenSpiderLegEntity, tick, freezeD
     end
 
     -- Call to freeze the spider. If its already been frozen this function will handle this cleanly.
-    StasisLandMine.ApplyStasisToTarget(parentSpider, tick, freezeDuration)
+    StasisLandMine.ApplyStasisToTarget(parentSpider, currentTick, freezeDuration)
 end
 
 
@@ -462,8 +464,8 @@ StasisLandMine.MakeEntityIdentifier = function(entity, entity_name, surface_inde
 end
 
 --- Remote interface call to freeze a given entity.
----@param entityToFreeze LuaEntity|any
----@param timeSeconds uint|any
+---@param entityToFreeze LuaEntity
+---@param timeSeconds uint
 StasisLandMine.PlaceEntityInStasis_Remote = function(entityToFreeze, timeSeconds)
     local errorPrefix = "ERROR - Stasis Mine - 'stasis_entity' remote interface: "
 
@@ -480,19 +482,19 @@ StasisLandMine.PlaceEntityInStasis_Remote = function(entityToFreeze, timeSeconds
     elseif not entityToFreeze.valid then
         LoggingUtils.LogPrintError(errorPrefix .. "Invalid (dead) LuaEntity provided for `entity`")
         return
-    end
+    end ---@cast entityToFreeze LuaEntity
 
-    -- Check the `entityToFreeze` argument.
+    -- Check the `timeSeconds` argument.
     if timeSeconds == nil then
-        LoggingUtils.LogPrintError(errorPrefix .. "No `time` to freeze provided")
+        LoggingUtils.LogPrintError(errorPrefix .. "No `time` to freeze for provided")
         return
     end
     local timeSeconds_number = tonumber(timeSeconds)
     if timeSeconds_number == nil then
-        LoggingUtils.LogPrintError(errorPrefix .. "None number provided for `time`, got: " .. timeSeconds)
+        LoggingUtils.LogPrintError(errorPrefix .. "Non number provided for `time`, got: " .. tostring(timeSeconds))
         return
     end
-    local timeSeconds_number = math.floor(timeSeconds_number)
+    timeSeconds_number = math.floor(timeSeconds_number)
     if timeSeconds_number < 5 then
         LoggingUtils.LogPrintError(errorPrefix .. "Stasis `time` must be 5 seconds or greater, got: " .. tostring(timeSeconds_number))
         return
@@ -501,6 +503,150 @@ StasisLandMine.PlaceEntityInStasis_Remote = function(entityToFreeze, timeSeconds
 
     -- Freeze the entity for the time.
     StasisLandMine.ApplyStasisToTarget(entityToFreeze, game.tick, timeTicks)
+end
+
+--- Remote interface call to create a custom stasis effect at a given location.
+---@param surface LuaSurface
+---@param position MapPosition
+---@param ourForce_raw LuaForce|string
+---@param affected_raw "all"|"enemy"
+---@param effectRadius_raw uint|nil
+---@param timeSeconds_raw uint|nil
+StasisLandMine.CreateStasisEffect_Remote = function(surface, position, ourForce_raw, affected_raw, effectRadius_raw, timeSeconds_raw)
+    local errorPrefix = "ERROR - Stasis Mine - 'stasis_effect' remote interface: "
+
+    -- Check the `surface` argument.
+    if surface == nil then
+        LoggingUtils.LogPrintError(errorPrefix .. "No `surface` provided")
+        return
+    elseif type(surface) ~= "table" then
+        LoggingUtils.LogPrintError(errorPrefix .. "Non LuaSurface provided for `surface`, got type: " .. type(surface))
+        return
+    elseif surface.object_name ~= "LuaSurface" then
+        LoggingUtils.LogPrintError(errorPrefix .. "Non LuaSurface provided for `surface`, got type: " .. surface.object_name)
+        return
+    elseif not surface.valid then
+        LoggingUtils.LogPrintError(errorPrefix .. "Invalid (dead) LuaSurface provided for `surface`")
+        return
+    end ---@cast surface LuaSurface
+
+    -- Check the `position` argument.
+    if position == nil then
+        LoggingUtils.LogPrintError(errorPrefix .. "No `position` provided")
+        return
+    elseif type(position) ~= "table" then
+        LoggingUtils.LogPrintError(errorPrefix .. "Non MapPosition provided for `position`, got type: " .. type(position))
+        return
+    elseif position.object_name ~= nil then
+        LoggingUtils.LogPrintError(errorPrefix .. "Factorio Lua Object provided for `position`, got type: " .. surface.object_name)
+        return
+    elseif not PositionUtils.IsTableValidPosition(position) then
+        LoggingUtils.LogPrintError(errorPrefix .. "Invalid MapPosition object received for `position`: " .. LoggingUtils.PrintThingsDetails(position))
+        return
+    end ---@cast position MapPosition
+
+    -- Check the `ourForce` argument.
+    local ourForce ---@type LuaForce
+    if ourForce_raw == nil then
+        LoggingUtils.LogPrintError(errorPrefix .. "No `ourForce` provided")
+        return
+    elseif type(ourForce_raw) == "string" then
+        -- Special type that we need to process separately to the standard checks if we receive a LuaForce.
+        ourForce = game.forces[ourForce_raw]
+        if ourForce == nil then
+            LoggingUtils.LogPrintError(errorPrefix .. "Invalid LuaForce provided for `ourForce` by its name, got force name: " .. ourForce_raw)
+            return
+        end
+    elseif type(ourForce_raw) ~= "table" then
+        LoggingUtils.LogPrintError(errorPrefix .. "Non LuaForce provided for `ourForce`, got type: " .. type(ourForce_raw))
+        return
+    elseif ourForce_raw.object_name ~= "LuaForce" then
+        LoggingUtils.LogPrintError(errorPrefix .. "Non LuaForce provided for `ourForce`, got type: " .. ourForce_raw.object_name)
+        return
+    elseif not ourForce_raw.valid then
+        LoggingUtils.LogPrintError(errorPrefix .. "Invalid (dead) LuaForce provided for `ourForce`")
+        return
+    else
+        ourForce = ourForce_raw
+    end
+
+    -- Check the `affected` argument.
+    local affected ---@type "all"|"enemy"
+    if affected_raw == nil then
+        affected = global.modSettings["stasis_force_effected"]
+    elseif type(affected_raw) ~= "string" then
+        LoggingUtils.LogPrintError(errorPrefix .. "Non string provided for `affected`, got type: " .. type(affected_raw))
+        return
+    elseif affected_raw ~= "all" and affected_raw ~= "enemy" then
+        LoggingUtils.LogPrintError(errorPrefix .. "Non valid string provided for `affected`, accepts either `all` or `enemy`, got: " .. affected_raw)
+        return
+    else
+        affected = affected_raw
+    end
+
+    -- Check the `effectRadius` argument.
+    local effectRadius ---@type uint
+    if effectRadius_raw == nil then
+        effectRadius = global.modSettings["stasis_effect_area"]
+    else
+        effectRadius = tonumber(effectRadius_raw) --[[@as uint]]
+        if effectRadius == nil then
+            LoggingUtils.LogPrintError(errorPrefix .. "Non number provided for `effectRadius`, got: " .. tostring(effectRadius_raw))
+            return
+        end
+        effectRadius = math.floor(effectRadius) --[[@as uint]]
+        if effectRadius < 1 then
+            LoggingUtils.LogPrintError(errorPrefix .. "`effectRadius` must be 1 tile or greater, got: " .. tostring(effectRadius_raw))
+            return
+        end
+    end
+
+    -- Check the `timeSeconds` argument.
+    local timeTicks ---@type uint
+    if timeSeconds_raw == nil then
+        timeTicks = global.modSettings["stasis_ticks"]
+    else
+        local timeSeconds = tonumber(timeSeconds_raw)
+        if timeSeconds == nil then
+            LoggingUtils.LogPrintError(errorPrefix .. "Non number provided for `time`, got: " .. tostring(timeSeconds_raw))
+            return
+        end
+        timeSeconds = math.floor(timeSeconds)
+        if timeSeconds < 5 then
+            LoggingUtils.LogPrintError(errorPrefix .. "Stasis `time` must be 5 seconds or greater, got: " .. tostring(timeSeconds_raw))
+            return
+        end
+        timeTicks = timeSeconds * 60 --[[@as uint]]
+    end
+
+    -- Work out the forces list based on the settings.
+    local forcesAffected
+    if affected == "all" then
+        forcesAffected = nil -- Means all forces entities are returned.
+    else
+        -- Get all of the enemy forces to ourForce.
+        forcesAffected = {} ---@type table<int, LuaForce>
+        for _, force in pairs(game.forces) do
+            if ourForce.is_enemy(force) then
+                forcesAffected[#forcesAffected + 1] = force
+            end
+        end
+    end
+
+    -- Do the stasis effect at the given location.
+    local currentTick = game.tick
+
+    -- Do the area targetting just like the real weapon does.
+    for _, entity in pairs(surface.find_entities_filtered({ position = position, radius = effectRadius, force = forcesAffected })) do
+        -- Call in to our event handler function as if we were the event itself.
+        StasisLandMine.OnScriptTriggerEffect({ effect_id = "stasis_affected_target", target_entity = entity, tick = currentTick }, timeTicks, nil)
+    end
+
+    -- Do the detonation effects like the weapons do. We can;t do the random frame starting deviation, but it doesn't really matter.
+    surface.create_entity({ name = "stasis_mine-stasis_source_impact_effect", position = position })
+
+    -- Do the detonation effect like the weapons does. Call in to our event handler function as if we were the event itself.
+    StasisLandMine.OnScriptTriggerEffect({ effect_id = "stasis_land_mine_source", source_position = position, surface_index = surface.index }, nil, effectRadius)
 end
 
 return StasisLandMine

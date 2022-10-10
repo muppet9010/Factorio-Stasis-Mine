@@ -33,22 +33,36 @@ Notes
 Remotely triggering an area stasis effect via Lua script
 ---------------------------------------------
 
-You can remote trigger the stasis effect via a Lua script by creating a stasis grenade at the target position and it instantly will explode. While this isn't as elegant as me adding a bespoke remote interface call, it gives the same results.
+You can remote trigger the areas stasis effect via a Lua script.
+
+#### Arguments (in sequential order)
+- Surface = Reference to the LuaSurface the effect to be generated on.
+- Position = The MapPosition the effect will be generated at. This is a table with `x` and `y` keys.
+- Our Force = Reference to the LuaForce or its name, that the effect is being generated on behalf of. Typically the `player` named force.
+- Affected = Either `all` or `enemy` entities are affected by the effect. If provided as `nil` then the mod setting will be used.
+- Radius = How large the radius of the stasis effect will be. 1 or greater. If provided as `nil` then the mod setting will be used.
+- Time = How many seconds (whole) the stasis effect will last. 5 or above. If provided as `nil` then the mod setting will be used.
 
 #### Example Code
 
-Example code below to create a stasis grenade at a given position. It will instantly explode causing a stasis effect.
-Note: The semi colons on the end of each Lua snippet is to tell Lua where the end of each code snippet is, required by integrations that concatenate the Lua code in to a single line, and does no harm for other Lua code uses.
+Example code below to create a stasis effect at a static position with the specific radius and time values.
 
 ```
-/sc
-local player = game.get_player("muppet9010");
-local position = player.position;
-player.surface.create_entity({name="stasis-grenade", position=position, force="enemy", target=position, speed=0, max_range=0});
+/sc remote.call("stasis_effect", "stasis_entity", game.surfaces[1], {x=10,y=20}, "player", "all", 10, 30)
+```
+
+Example code below to create a stasis effect on a player against their enemies with the mod default radius and time values.
+
+```
+/sc local player = game.get_player("muppet9010")
+if player then
+    remote.call("stasis_effect", "stasis_entity", player.surface, player.position, player.force, "enemy", nil, nil)
+end
 ```
 
 
-Remotely placing an entity in stasis via Lua script
+
+Remotely placing a single entity in stasis via Lua script
 ---------------------------------------------
 
 You can remote trigger the stasis effect on a single entity via a Lua script.
@@ -61,15 +75,13 @@ You can remote trigger the stasis effect on a single entity via a Lua script.
 #### Example Code
 
 Example code below to stasis the player's vehicle/character for the set time.
-Note: The semi colons on the end of each Lua snippet is to tell Lua where the end of each code snippet is, required by integrations that concatenate the Lua code in to a single line, and does no harm for other Lua code uses.
 
 ```
-/sc
-local player = game.get_player("muppet9010");
-if player then;
-    local entityToFreeze = player.vehicle or player.character;
-    if entityToFreeze then;
-        remote.call("stasis_weapons", "stasis_entity", entityToFreeze, 20);
-    end;
+/sc local player = game.get_player("muppet9010")
+if player then
+    local entityToFreeze = player.vehicle or player.character
+    if entityToFreeze then
+        remote.call("stasis_weapons", "stasis_entity", entityToFreeze, 20)
+    end
 end
 ```
