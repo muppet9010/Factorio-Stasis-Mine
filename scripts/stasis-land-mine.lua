@@ -637,13 +637,17 @@ StasisLandMine.CreateStasisEffect_Remote = function(surface, position, ourForce_
     local currentTick = game.tick
 
     -- Do the area targetting just like the real weapon does.
-    for _, entity in pairs(surface.find_entities_filtered({ position = position, radius = effectRadius, force = forcesAffected })) do
+    -- CODE NOTE: As this API search is to the entities center, not its collision box, we add 1 range on to try and balance it. Documented in the readme as such. We could modify the weapons to measure to entity center, but this can have some odd visual affects and is different to all other Factorio measuring. https://wiki.factorio.com/Types/AreaTriggerItem#collision_mode . Alternative is to create detonations of the right area size on all forces and then do lots of script filtering by force, etc.
+    -- CODE NOTE: the collision_mask filter is to stop it including a lot of un-intended entity types, like projectiles, smoke. Otherwise in testing 2 stasis effects would actually freeze each others graphics.
+    for _, entity in pairs(surface.find_entities_filtered({ position = position, radius = effectRadius + 2, force = forcesAffected, collision_mask = { "object-layer", "player-layer", "train-layer" } })) do
         -- Call in to our event handler function as if we were the event itself.
         StasisLandMine.OnScriptTriggerEffect({ effect_id = "stasis_affected_target", target_entity = entity, tick = currentTick }, timeTicks, nil)
     end
 
-    -- Do the detonation effects like the weapons do. We can;t do the random frame starting deviation, but it doesn't really matter.
-    surface.create_entity({ name = "stasis_mine-stasis_source_impact_effect", position = position })
+    -- Do the detonation effects like the weapons do. But we need to do a dynamically scaled graphic.
+    --surface.create_entity({ name = "stasis_mine-stasis_source_impact_effect", position = position })
+    local animationScale = effectRadius / 2.5
+    rendering.draw_animation({ animation = "stasis_source_impact_animation", x_scale = animationScale, y_scale = animationScale, target = position, surface = surface, time_to_live = 30 })
 
     -- Do the detonation effect like the weapons does. Call in to our event handler function as if we were the event itself.
     StasisLandMine.OnScriptTriggerEffect({ effect_id = "stasis_land_mine_source", source_position = position, surface_index = surface.index }, nil, effectRadius)

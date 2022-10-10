@@ -36,19 +36,24 @@ Remotely triggering an area stasis effect via Lua script
 You can remote trigger the areas stasis effect via a Lua script.
 
 #### Arguments (in sequential order)
+
 - Surface = Reference to the LuaSurface the effect to be generated on.
 - Position = The MapPosition the effect will be generated at. This is a table with `x` and `y` keys.
 - Our Force = Reference to the LuaForce or its name, that the effect is being generated on behalf of. Typically the `player` named force.
 - Affected = Either `all` or `enemy` entities are affected by the effect. If provided as `nil` then the mod setting will be used.
-- Radius = How large the radius of the stasis effect will be. 1 or greater. If provided as `nil` then the mod setting will be used.
+- Radius = How large the radius of the stasis effect will be. 1 or greater. The radius is a bit special, see notes. If provided as `nil` then the mod setting + 2 will be used.
 - Time = How many seconds (whole) the stasis effect will last. 5 or above. If provided as `nil` then the mod setting will be used.
+
+#### Notes:
+
+- Radius argument - The radius of the remote interface call isn't processed identically to how the stasis weapons detonation radius is. This is just due to how Factorio does things and the API options if provides. The weapon's detonation is to the edge of a target's collision box. The remote interface call is to the center of the entity. To try and balance this out to some degree the remote call will actually measure the radius distance + 2 to see if targets centers are within range. This does still mean that the 2 effect methods won't be perfectly equal for the same radius value.s
 
 #### Example Code
 
 Example code below to create a stasis effect at a static position with the specific radius and time values.
 
 ```
-/sc remote.call("stasis_effect", "stasis_entity", game.surfaces[1], {x=10,y=20}, "player", "all", 10, 30)
+/sc remote.call("stasis_weapons", "stasis_effect", game.surfaces[1], {x=10,y=20}, "player", "all", 10, 30)
 ```
 
 Example code below to create a stasis effect on a player against their enemies with the mod default radius and time values.
@@ -56,7 +61,7 @@ Example code below to create a stasis effect on a player against their enemies w
 ```
 /sc local player = game.get_player("muppet9010")
 if player then
-    remote.call("stasis_effect", "stasis_entity", player.surface, player.position, player.force, "enemy", nil, nil)
+    remote.call("stasis_weapons", "stasis_effect", player.surface, player.position, player.force, "enemy", nil, nil)
 end
 ```
 

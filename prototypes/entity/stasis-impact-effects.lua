@@ -13,8 +13,7 @@ local targetEffect = {
         width = 364,
         height = 372,
         frame_count = 16,
-        tint = nil,
-        scale = 1 / 4,
+        scale = 1 / 4
     },
     duration = tonumber(settings.startup["stasis_mine-stasis_time"].value) * 60,
     fade_in_duration = 120,
@@ -32,6 +31,19 @@ sourceEffect.animation.scale = tonumber(settings.startup["stasis_mine-stasis_eff
 sourceEffect.duration = 30
 sourceEffect.fade_in_duration = 0 -- Effect is so quick that fade in/out isn't visible to players.
 sourceEffect.fade_away_duration = 0 -- Effect is so quick that fade in/out isn't visible to players.
+
+-- The initial detonation animation used by dynamically scaled cases. Is scaled at usage time.
+-- The animation graphic is made transparent like the smoke picture is automatically.
+local stasis_source_impact_animation = {
+    type = "animation",
+    name = "stasis_source_impact_animation",
+    filename = Constants.AssetModName .. "/graphics/entity/stasis_impact_effect_animation-hr.png",
+    flags = { "trilinear-filtering" },
+    line_length = 4,
+    width = 364,
+    height = 372,
+    frame_count = 16
+}
 
 -- The effect when a landmine dies. Shows a small stasis effect when a landmine is killed, like its done a mini failed stasis detonation.
 local dyingEffect = TableUtils.DeepCopy(targetEffect)
@@ -51,6 +63,7 @@ data:extend(
     {
         targetEffect,
         sourceEffect,
+        stasis_source_impact_animation,
         dyingEffect,
         dyingExplosion
     }
