@@ -1,6 +1,8 @@
 --[[
     Some of the slightly odd data structures are to avoid needing to do a migration script for old saves.
-]]
+
+    This isn't the most efficient with scheduling, however the API calls have been cached where possible. Very few vehicles are expected to be affected at one time and so optimising of this area hasn't been a focus.
+--]]
 
 local StasisLandMine = {}
 local Events = require("utility.manager-libraries.events")
@@ -328,15 +330,13 @@ end
 StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat)
     --- CODE NOTE: While this is called every tick a teleported vehicle will only have it's surface and position data obtained in the case something is wrong. So hopefully very rarely. For this reason we don;t use the cache of these or track/update the cache.
     local vehicleEntity = frozenVehicleDetails.affectedEntityDetails.entity
-    local seatName, currentSeatOccupant, setSeatOccupantFunction
+    local seatName, currentSeatOccupant
     if seat == "driver" then
         seatName = "driver"
         currentSeatOccupant = vehicleEntity.get_driver()
-        setSeatOccupantFunction = vehicleEntity.set_driver
     else
         seatName = "passenger"
         currentSeatOccupant = vehicleEntity.get_passenger()
-        setSeatOccupantFunction = vehicleEntity.set_passenger
     end
     if frozenVehicleDetails[seatName] ~= nil then
         -- There should still be a player in the vehicle, if there isn't return them.
@@ -347,7 +347,11 @@ StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat)
                 local vehicleEntity_position = vehicleEntity.position
                 if PositionUtils.GetDistance(vehicleEntity_position, expectedCharacter.position) < 5 then
                     -- Player is near by so put them back in to the seat.
-                    setSeatOccupantFunction(expectedCharacter)
+                    if seat == "driver" then
+                        vehicleEntity.set_driver(expectedCharacter)
+                    else
+                        vehicleEntity.set_passenger(expectedCharacter)
+                    end
                     vehicleEntity.surface.create_entity({ name = "flying-text", position = vehicleEntity_position, text = { "message.stasis_mine-player_can_not_leave_vehicle" }, render_player_index = frozenVehicleDetails[seatName].index })
                 else
                     -- Player is too far away, so forget they where in the seat. Otherwise if they walk near the vehicle they will be snapped back in to it.

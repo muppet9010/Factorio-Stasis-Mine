@@ -7,8 +7,8 @@ local function CreateGlobals()
 end
 
 local function OnLoad()
-    remote.remove_interface("stasis_mine")
-    remote.add_interface("stasis_mine", {
+    remote.remove_interface("stasis_weapons")
+    remote.add_interface("stasis_weapons", {
         stasis_entity = StasisLandMine.PlaceEntityInStasis_Remote
     })
 

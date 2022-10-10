@@ -69,7 +69,7 @@ local player = game.get_player("muppet9010");
 if player then;
     local entityToFreeze = player.vehicle or player.character;
     if entityToFreeze then;
-        remote.call("stasis_mine", "stasis_entity", entityToFreeze, 20);
+        remote.call("stasis_weapons", "stasis_entity", entityToFreeze, 20);
     end;
 end
 ```
