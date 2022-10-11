@@ -5,7 +5,7 @@ local Sounds = require("__base__.prototypes.entity.sounds")
 local StasisGrenade = {
     type = "capsule",
     name = "stasis-grenade",
-    flags = {},
+    flags = { "hide-from-bonus-gui" },
     icon = Constants.AssetModName .. "/graphics/item/stasis_grenade.png",
     icon_size = 64,
     icon_mipmaps = 0,
@@ -16,7 +16,6 @@ local StasisGrenade = {
         {
             type = "projectile",
             activation_type = "throw",
-            ammo_category = "stasis-grenade",
             cooldown = 30,
             projectile_creation_distance = 0.6,
             range = 15,

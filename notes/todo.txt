@@ -1,14 +1,14 @@
 Now:
 
 
+
 Future:
-	- Bug: trains don't stay truely stopped (manual and automatic). They manage to speed up a tiny bit every tick from 0. Cars do stay at 0 speed.
-	- Add: mod startup setting to set the size of the effect. We can just scale up things in the data stage.
-	- Add: add smoother looking graphics for greande and rocket, although not quite sure what the design should be, hence current temporary graphics.
-	- Add: setting if spidertrons are immune.
-	- Add: Lock player in to a stasis affected vehicle. Rather than by permission just check if every tick and put them back in.
-	- Bug: add to info.lua and mod portal entry that its landmines, rockets and grenades.
-	- Bug: hide each weapon type from bonuses if it is disabled.
+
+
+
+Ideal World:
+    - Change the affect graphics and light to be a series of separate effects. Then we can do the fade in and out for both. Also when we have to recreate them for teleported things we can skip any fade in duration. At present its generally ok-ish.
+
 
 
 Notes:

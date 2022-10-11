@@ -1,6 +1,6 @@
-local Utils = require("utility.utils")
+local TableUtils = require("utility.helper-utils.table-utils")
 
-local StasisRocket = Utils.DeepCopy(data.raw["projectile"]["rocket"])
+local StasisRocket = TableUtils.DeepCopy(data.raw["projectile"]["rocket"])
 StasisRocket.name = "stasis-rocket"
 StasisRocket.action = {
     type = "direct",
@@ -12,7 +12,7 @@ StasisRocket.action = {
                 affects_target = true,
                 action = {
                     type = "area",
-                    radius = 6,
+                    radius = settings.startup["stasis_mine-stasis_effect_area"].value,
                     force = settings.startup["stasis_mine-stasis_force_effected"].value,
                     action_delivery = {
                         type = "instant",
@@ -26,8 +26,8 @@ StasisRocket.action = {
                 }
             },
             {
-                type = "create-trivial-smoke",
-                smoke_name = "stasis_mine-stasis_source_impact_effect",
+                type = "create-smoke",
+                entity_name = "stasis_mine-stasis_source_impact_effect",
                 starting_frame_deviation = 16
             },
             {

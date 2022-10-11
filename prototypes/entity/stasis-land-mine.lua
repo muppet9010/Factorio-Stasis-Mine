@@ -14,7 +14,8 @@ data:extend(
                 "placeable-enemy",
                 "player-creation",
                 "placeable-off-grid",
-                "not-on-map"
+                "not-on-map",
+                "hidden"
             },
             minable = { mining_time = 0.5, result = "stasis-land-mine" },
             mined_sound = { filename = "__core__/sound/deconstruct-small.ogg" },
@@ -23,8 +24,8 @@ data:extend(
             random_corpse_variation = true,
             dying_explosion = "stasis_min-stasis_dying_explosion",
             dying_trigger_effect = {
-                type = "create-trivial-smoke",
-                smoke_name = "stasis_mine-stasis_dying_effect",
+                type = "create-smoke",
+                entity_name = "stasis_mine-stasis_dying_effect",
                 starting_frame_deviation = 16
             },
             collision_box = { { -0.4, -0.4 }, { 0.4, 0.4 } },
@@ -56,7 +57,7 @@ data:extend(
             },
             trigger_radius = 2.5,
             timeout = 600,
-            ammo_category = "stasis",
+            ammo_category = "landmine",
             action = {
                 type = "direct",
                 action_delivery = {
@@ -67,7 +68,7 @@ data:extend(
                             affects_target = true,
                             action = {
                                 type = "area",
-                                radius = 6,
+                                radius = settings.startup["stasis_mine-stasis_effect_area"].value,
                                 force = settings.startup["stasis_mine-stasis_force_effected"].value,
                                 action_delivery = {
                                     type = "instant",
@@ -81,8 +82,8 @@ data:extend(
                             }
                         },
                         {
-                            type = "create-trivial-smoke",
-                            smoke_name = "stasis_mine-stasis_source_impact_effect",
+                            type = "create-smoke",
+                            entity_name = "stasis_mine-stasis_source_impact_effect",
                             starting_frame_deviation = 16
                         },
                         {

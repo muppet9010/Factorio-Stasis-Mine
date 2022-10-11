@@ -1,18 +1,23 @@
 local StasisLandMine = require("scripts/stasis-land-mine")
 
 local function CreateGlobals()
+    global.modSettings = global.modSettings or {} ---@class ModSettings
+
     StasisLandMine.CreateGlobals()
 end
 
 local function OnLoad()
-    --Any Remote Interface registration calls can go in here or in root of control.lua
+    remote.remove_interface("stasis_weapons")
+    remote.add_interface("stasis_weapons", {
+        stasis_entity = StasisLandMine.PlaceEntityInStasis_Remote,
+        stasis_effect = StasisLandMine.CreateStasisEffect_Remote
+    })
+
     StasisLandMine.OnLoad()
 end
 
 local function OnSettingChanged(event)
-    --if event == nil or event.setting == "xxxxx" then
-    --	local x = tonumber(settings.global["xxxxx"].value)
-    --end
+    StasisLandMine.OnSettingChanged(event)
 end
 
 local function OnStartup()

@@ -1,7 +1,7 @@
 {
     "name": "stasis_mine",
-    "version": "20.0.4",
-    "title": "Stasis Mine",
+    "version": "20.0.5",
+    "title": "Stasis Weapons",
     "author": "Muppet9010",
     "contact": "",
     "homepage": "https://mods.factorio.com/mod/stasis_mine",
@@ -9,5 +9,5 @@
     "dependencies": [
         "base >= 1.1"
     ],
-    "description": "Adds a landmine that takes everything in to a temporary stasis, with them becoming frozen and immune from damage."
+    "description": "Adds weapons and streamer effects that takes everything in to a temporary stasis, with them becoming frozen and immune from damage."
 }

@@ -17,6 +17,14 @@ data:extend(
             order = "1002"
         },
         {
+            name = "stasis_mine-stasis_effect_area",
+            type = "int-setting",
+            default_value = 6,
+            minimum_value = 1,
+            setting_type = "startup",
+            order = "1003"
+        },
+        {
             name = "stasis_mine-disable_stasis_mine",
             type = "bool-setting",
             default_value = false,
@@ -36,6 +44,25 @@ data:extend(
             default_value = false,
             setting_type = "startup",
             order = "2000"
+        }
+    }
+)
+
+data:extend(
+    {
+        {
+            name = "stasis_mine-trains_affected",
+            type = "bool-setting",
+            default_value = true,
+            setting_type = "runtime-global",
+            order = "1001"
+        },
+        {
+            name = "stasis_mine-spidertrons_affected",
+            type = "bool-setting",
+            default_value = true,
+            setting_type = "runtime-global",
+            order = "1001"
         }
     }
 )
