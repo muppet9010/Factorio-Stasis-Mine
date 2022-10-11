@@ -1,13 +1,13 @@
 ---------------------------------------------------------------------------------------------------
 Version: 20.0.5
-Date: 2022-10-XXX
+Date: 2022-10-11
   Features:
     - Added option to enable/disable trains being affected by stasis. Defaults to affecting trains.
     - Added option to enable/disable spidertrons being affected by stasis. Defaults to affecting spidertrons.
     - Added option to set the stasis blast area. Defaults to the original 6 tiles.
     - Added remote interface call to apply a custom length stasis effect to a single entity. Details in mod description/readme.
     - Added remote interface call to apply a custom stasis area effect to a position. Details in mod description/readme.
-    - Stasis graphic and light on entities is scaled roughly based on their graphic size. This isn't perfect, but kept generic to avoided doing any entity bespoke coding.
+    - Per affected entity stasis graphic and light size is roughly scaled based on the entities main graphic size (selection_box). This isn't perfect, but kept generic to avoided doing any entity bespoke coding.
   Changes:
     - Trains are now entirely affected when one or more carriages are affected by stasis (mod setting depending). Now a fully affected train has stasis applied to all carriages in the train and it is fully stopped and prevented from moving for the duration of the effect. This is as a partially affected train doesn't behave nicely and would have lots of edge cases.
     - Players are not able to get in/out of vehicles in stasis. This is managed by script and not permission groups.
@@ -19,6 +19,7 @@ Date: 2022-10-XXX
     - Stasis effect graphic will appear more centered on things (middle of selection box, rather than entities position).
     - A teleported vehicle in stasis now has the player's view updated to the new location, rather than left at the old vehicles location. This bug was from default Factorio logic for a disabled vehicle.
   Info:
+    - A lot of the additions will only apply to entities newly affected by stasis. Entities that were stasis'd in a previous mod version will be largely unchanged.
 ---------------------------------------------------------------------------------------------------
 Version: 20.0.4
 Date: 2022-09-16

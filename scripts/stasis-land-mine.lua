@@ -27,6 +27,9 @@ local LoggingUtils = require("utility.helper-utils.logging-utils")
 ---@field frozenCharacterDetails FrozenCharacterDetails|nil
 ---@field affectedGraphic LuaEntity
 ---@field affectedLightId uint64|nil # Rendered light Id if there's a light. We don't make one if there's not enough time left.
+---
+---@field oldHealth float|nil # Legacy value that we no longer set. But we need to handle updated mods that had stasis effects with it.
+---@field oldSpeed float|nil # Legacy value that we no longer set. But we need to handle updated mods that had stasis effects with it.
 
 ---@class FrozenVehicleDetails
 ---@field affectedEntityDetails AffectedEntityDetails
@@ -59,6 +62,9 @@ StasisLandMine.OnLoad = function()
     EventScheduler.RegisterScheduledEventType("StasisLandMine.RemoveStasisFromTarget", StasisLandMine.RemoveStasisFromTarget)
     EventScheduler.RegisterScheduledEventType("StasisLandMine.KeepVehicleFrozen", StasisLandMine.KeepVehicleFrozen)
     EventScheduler.RegisterScheduledEventType("StasisLandMine.KeepCharacterFrozen", StasisLandMine.KeepCharacterFrozen)
+
+    -- Legacy scheduled event. Kept to avoid needing to do a migration script for now. It didn't actually achieve anything in the past. So just let the event function run and die.
+    EventScheduler.RegisterScheduledEventType("StasisLandMine.FreezeVehicle", function() end)
 end
 
 StasisLandMine.OnStartup = function()
@@ -294,6 +300,18 @@ StasisLandMine.RemoveStasisFromTarget = function(event)
         entity.minable = affectedEntityData.oldMinable
     end
 
+    -- Legacy values that need to be set back. We no longer set these.
+    if affectedEntityData.oldHealth ~= nil then
+        entity.health = affectedEntityData.oldHealth
+    end
+    if affectedEntityData.oldSpeed ~= nil then
+        if entity.train ~= nil then
+            entity.train.speed = affectedEntityData.oldSpeed
+        else
+            entity.speed = affectedEntityData.oldSpeed
+        end
+    end
+
     if affectedEntityData.frozenVehicleDetails ~= nil then
         StasisLandMine.UnFreezeVehicle(affectedEntityData.frozenVehicleDetails)
     end
@@ -303,7 +321,7 @@ end
 ---@param frozenVehicleDetails FrozenVehicleDetails
 ---@param currentTick uint
 StasisLandMine.FreezeVehicleInitial = function(frozenVehicleDetails, currentTick)
-    local affectedEntityDetails      = frozenVehicleDetails.affectedEntityDetails
+    local affectedEntityDetails = frozenVehicleDetails.affectedEntityDetails
     local vehicleEntity, vehicleType = affectedEntityDetails.entity, affectedEntityDetails.entityType
 
     if vehicleType == "locomotive" or vehicleType == "cargo-wagon" or vehicleType == "fluid-wagon" or vehicleType == "artillery-wagon" then
