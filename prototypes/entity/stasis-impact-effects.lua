@@ -2,6 +2,7 @@ local TableUtils = require("utility.helper-utils.table-utils")
 local Constants = require("constants")
 
 -- The visual effect done on an affected entity for the duration of the effect.
+-- Is the small one now. Kept as old name for backwards compatibility.
 local targetEffect = {
     type = "smoke-with-trigger",
     name = "stasis_mine-stasis_target_impact_effect",
@@ -23,6 +24,19 @@ local targetEffect = {
     affected_by_wind = false,
     show_when_smoke_off = true
 }
+
+-- The other size variations of the target effect.
+local targetEffect_medium = TableUtils.DeepCopy(targetEffect)
+targetEffect_medium.name = "stasis_mine-stasis_target_impact_effect-medium"
+targetEffect_medium.animation.scale = 0.5
+
+local targetEffect_large = TableUtils.DeepCopy(targetEffect)
+targetEffect_large.name = "stasis_mine-stasis_target_impact_effect-large"
+targetEffect_large.animation.scale = 1
+
+local targetEffect_huge = TableUtils.DeepCopy(targetEffect)
+targetEffect_huge.name = "stasis_mine-stasis_target_impact_effect-huge"
+targetEffect_huge.animation.scale = 1.5
 
 -- The initial detonation effect done where the stasis weapon goes off to cover its affected area briefly.
 local sourceEffect = TableUtils.DeepCopy(targetEffect)
@@ -62,6 +76,9 @@ dyingExplosion.animations.hr_version.shift = { 0, 1 }
 data:extend(
     {
         targetEffect,
+        targetEffect_medium,
+        targetEffect_large,
+        targetEffect_huge,
         sourceEffect,
         stasis_source_impact_animation,
         dyingEffect,

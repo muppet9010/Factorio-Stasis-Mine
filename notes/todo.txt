@@ -3,7 +3,6 @@ Now:
 
 
 Future:
-    - Maybe I can make a few different sized entity effects and then find a way to select one for use on each frozen entity.
 
 
 

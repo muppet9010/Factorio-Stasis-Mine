@@ -192,40 +192,63 @@ StasisLandMine.ApplyStasisToTarget = function(entity, currentTick, freezeDuratio
 
 
     -- Show the effect on the entity.
-    affectedEntityDetails.affectedGraphic, affectedEntityDetails.affectedLightId = StasisLandMine.CreateAffectedEntityEffects(entity, entity_position, entity_surface, freezeDuration)
+    StasisLandMine.CreateAffectedEntityEffects(affectedEntityDetails, entity, entity_position, entity_surface, freezeDuration)
 end
 
 --- Create the affected entities graphics and light.
+---@param affectedEntityDetails AffectedEntityDetails
 ---@param entity LuaEntity
 ---@param entityPosition MapPosition
 ---@param entitySurface LuaSurface
 ---@param freezeDuration uint
----@return LuaEntity affectedGraphic
----@return uint64|nil renderedLightId
-StasisLandMine.CreateAffectedEntityEffects = function(entity, entityPosition, entitySurface, freezeDuration)
+StasisLandMine.CreateAffectedEntityEffects = function(affectedEntityDetails, entity, entityPosition, entitySurface, freezeDuration)
     local entity_selectionBox = entity.selection_box
+
+    -- Work out the graphic and light based on the entities selection_box as an indication of its approx graphics size in the game.
+    local width, height = entity_selectionBox.right_bottom.x - entity_selectionBox.left_top.x, entity_selectionBox.right_bottom.y - entity_selectionBox.left_top.y
+    local smallestDimensionSize = math.min(width, height)
+    local graphicName, lightScale
+    if smallestDimensionSize <= 1.5 then
+        graphicName = "stasis_mine-stasis_target_impact_effect"
+        lightScale = 0.5
+    elseif smallestDimensionSize <= 3 then
+        graphicName = "stasis_mine-stasis_target_impact_effect-medium"
+        lightScale = 1.0
+    elseif smallestDimensionSize <= 6 then
+        graphicName = "stasis_mine-stasis_target_impact_effect-large"
+        lightScale = 2.0
+    else
+        graphicName = "stasis_mine-stasis_target_impact_effect-huge"
+        lightScale = 3.0
+    end
+    -- Place the graphics and light in the center of the selection_box to get it near the middle of the entities graphics, as its position can be far off in some cases.
+    local effectPosition = {
+        x = entity_selectionBox.left_top.x + (width / 2),
+        y = entity_selectionBox.left_top.y + (height / 2) + 0.75
+    }
+
+    -- Add the graphic.
     local affectedGraphic = entitySurface.create_entity {
-        name = "stasis_mine-stasis_target_impact_effect",
-        position = {
-            x = entity_selectionBox.left_top.x + ((entity_selectionBox.right_bottom.x - entity_selectionBox.left_top.x) / 2),
-            y = entity_selectionBox.left_top.y + ((entity_selectionBox.right_bottom.y - entity_selectionBox.left_top.y) / 2) + 1
-        }
+        name = graphicName,
+        position = effectPosition
     } ---@cast affectedGraphic - nil
     if freezeDuration ~= global.modSettings["stasis_ticks"] then
         -- Only update the TTL if it isn't the mod setting one, as the mod setting is part of the prototype already.
         affectedGraphic.time_to_live = freezeDuration
     end
+    affectedEntityDetails.affectedGraphic = affectedGraphic
 
-    local lightRenderId
+    -- Add the light.
+    local lightRenderId ---@type uint64|nil
     local lightDuration = freezeDuration - 25
     if lightDuration > 0 then
-        lightRenderId = rendering.draw_light({ sprite = "utility/light_medium", target = entityPosition, surface = entitySurface, time_to_live = freezeDuration - 25, color = StasisLandMineLightColor, scale = 0.5, intensity = 0.25 }) -- TTL on light is based on when the effect visually significantly fades away.
+        lightRenderId = rendering.draw_light({ sprite = "utility/light_medium", target = entityPosition, surface = entitySurface, time_to_live = freezeDuration - 25, color = StasisLandMineLightColor, scale = lightScale, intensity = 0.25 }) -- TTL on light is based on when the effect visually significantly fades away.
     end
-
-    return affectedGraphic, lightRenderId
+    affectedEntityDetails.affectedLightId = lightRenderId
 end
 
 --- Update the affected entities graphics and light.
+--- We destroy and recreate them as this will happen very rarely and has a relatively low UPS cost really.
 ---@param affectedEntityDetails AffectedEntityDetails
 ---@param currentTick uint
 ---@param entity LuaEntity
@@ -238,7 +261,7 @@ StasisLandMine.UpdateAffectedEntityEffects = function(affectedEntityDetails, cur
         -- Destroy the old light if there was one.
         rendering.destroy(affectedEntityDetails.affectedLightId)
     end
-    affectedEntityDetails.affectedGraphic, affectedEntityDetails.affectedLightId = StasisLandMine.CreateAffectedEntityEffects(entity, entityPosition, entitySurface, freezeDuration)
+    StasisLandMine.CreateAffectedEntityEffects(affectedEntityDetails, entity, entityPosition, entitySurface, freezeDuration)
 
     -- Update the cached details of this entity for the moved graphic.
     affectedEntityDetails.initialPosition = entityPosition
