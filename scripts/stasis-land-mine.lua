@@ -16,24 +16,29 @@ local LoggingUtils = require("utility.helper-utils.logging-utils")
 ---@field unfreezeTick uint
 ---@field freezeDuration uint # Will be 300 or greater.
 ---@field entity LuaEntity
+---@field entityType string
 ---@field initialSurface LuaSurface # The surface of the entity when the effect started. Not updated if the entity is teleported.
 ---@field initialPosition MapPosition # The position of the entity when the effect started. Not updated if the entity is teleported.
 ---@field wasActive boolean
 ---@field wasDestructible boolean
 ---@field oldOperable boolean
 ---@field oldMinable boolean
----@field frozenVehicleDetails FreezeVehicleDetails|nil
+---@field frozenVehicleDetails FrozenVehicleDetails|nil
+---@field frozenCharacterDetails FrozenCharacterDetails|nil
 ---@field affectedGraphic LuaEntity
 ---@field affectedLightId uint64|nil # Rendered light Id if there's a light. We don't make one if there's not enough time left.
 
----@class FreezeVehicleDetails
----@field vehicleType string
+---@class FrozenVehicleDetails
 ---@field affectedEntityDetails AffectedEntityDetails
 ---@field carriageOldSpeed double|nil
 ---@field trainOldSpeed double|nil
 ---@field trainBlockerEntity LuaEntity|nil
 ---@field driver LuaPlayer|nil
 ---@field passenger LuaPlayer|nil
+
+---@class FrozenCharacterDetails
+---@field affectedEntityDetails AffectedEntityDetails
+---@field inVehicle boolean
 
 ---@class UnfreezeEntityDetails
 ---@field entity LuaEntity
@@ -52,7 +57,8 @@ StasisLandMine.OnLoad = function()
     Events.RegisterHandlerEvent(defines.events.on_script_trigger_effect, "StasisLandMine.OnScriptTriggerEffect", StasisLandMine.OnScriptTriggerEffect)
     EventScheduler.RegisterScheduler()
     EventScheduler.RegisterScheduledEventType("StasisLandMine.RemoveStasisFromTarget", StasisLandMine.RemoveStasisFromTarget)
-    EventScheduler.RegisterScheduledEventType("StasisLandMine.FreezeVehicle", StasisLandMine.FreezeVehicle)
+    EventScheduler.RegisterScheduledEventType("StasisLandMine.KeepVehicleFrozen", StasisLandMine.KeepVehicleFrozen)
+    EventScheduler.RegisterScheduledEventType("StasisLandMine.KeepCharacterFrozen", StasisLandMine.KeepCharacterFrozen)
 end
 
 StasisLandMine.OnStartup = function()
@@ -152,7 +158,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity, currentTick, freezeDuratio
     local unfreezeTick = currentTick + freezeDuration
     EventScheduler.ScheduleEventOnce(unfreezeTick, "StasisLandMine.RemoveStasisFromTarget", global.stasisLandMine.nextSchedulerId, { entity = entity, identifier = identifier })
     local wasActive, wasDestructible, oldOperable, oldMinable = entity.active, entity.destructible, entity.operable, entity.minable
-    local affectedEntityDetails = { unfreezeTick = unfreezeTick, freezeDuration = freezeDuration, entity = entity, initialSurface = entity_surface, initialPosition = entity_position }
+    local affectedEntityDetails = { unfreezeTick = unfreezeTick, freezeDuration = freezeDuration, entity = entity, entityType = entity_type, initialSurface = entity_surface, initialPosition = entity_position }
     global.stasisLandMine.affectedEntities[identifier] = affectedEntityDetails
 
     if wasActive then
@@ -174,11 +180,16 @@ StasisLandMine.ApplyStasisToTarget = function(entity, currentTick, freezeDuratio
 
     -- Freeze all vehicle types specially.
     if entity_type == "locomotive" or entity_type == "cargo-wagon" or entity_type == "fluid-wagon" or entity_type == "artillery-wagon" or entity_type == "car" or entity_type == "spider-vehicle" then
-        affectedEntityDetails.frozenVehicleDetails = { entity = entity, vehicleType = entity_type, affectedEntityDetails = affectedEntityDetails }
+        affectedEntityDetails.frozenVehicleDetails = { affectedEntityDetails = affectedEntityDetails }
         StasisLandMine.FreezeVehicleInitial(affectedEntityDetails.frozenVehicleDetails, currentTick)
     end
 
-    -- TODO: if its a player character then track them and move any stasis effect if they are teleported.
+    -- Freeze all character types specially.
+    if entity_type == "character" then
+        affectedEntityDetails.frozenCharacterDetails = { affectedEntityDetails = affectedEntityDetails }
+        StasisLandMine.FreezeCharacterInitial(affectedEntityDetails.frozenCharacterDetails, currentTick)
+    end
+
 
     -- Show the effect on the entity.
     affectedEntityDetails.affectedGraphic, affectedEntityDetails.affectedLightId = StasisLandMine.CreateAffectedEntityEffects(entity, entity_position, entity_surface, freezeDuration)
@@ -266,12 +277,13 @@ StasisLandMine.RemoveStasisFromTarget = function(event)
 end
 
 --- The initial stopping of a vehicle caught in a stasis effect.
----@param frozenVehicleDetails FreezeVehicleDetails
+---@param frozenVehicleDetails FrozenVehicleDetails
 ---@param currentTick uint
 StasisLandMine.FreezeVehicleInitial = function(frozenVehicleDetails, currentTick)
-    local vehicleEntity = frozenVehicleDetails.affectedEntityDetails.entity
+    local affectedEntityDetails      = frozenVehicleDetails.affectedEntityDetails
+    local vehicleEntity, vehicleType = affectedEntityDetails.entity, affectedEntityDetails.entityType
 
-    if frozenVehicleDetails.vehicleType == "locomotive" or frozenVehicleDetails.vehicleType == "cargo-wagon" or frozenVehicleDetails.vehicleType == "fluid-wagon" or frozenVehicleDetails.vehicleType == "artillery-wagon" then
+    if vehicleType == "locomotive" or vehicleType == "cargo-wagon" or vehicleType == "fluid-wagon" or vehicleType == "artillery-wagon" then
         -- Train carriage handling. Needs special handling as we are manipulating every carriage in the train and not just the carriage entity directly affect by the area of effect.
         local train = vehicleEntity.train ---@cast train - nil
         local train_id = train.id
@@ -288,13 +300,13 @@ StasisLandMine.FreezeVehicleInitial = function(frozenVehicleDetails, currentTick
             global.stasisLandMine.frozenTrainIds[train_id] = true
             for _, carriage in pairs(train.carriages) do
                 if carriage ~= vehicleEntity then
-                    StasisLandMine.ApplyStasisToTarget(carriage, currentTick, frozenVehicleDetails.affectedEntityDetails.freezeDuration)
+                    StasisLandMine.ApplyStasisToTarget(carriage, currentTick, affectedEntityDetails.freezeDuration)
                 end
             end
         end
 
         -- Each train carriage that is frozen needs to create and record its own blocker entity.
-        frozenVehicleDetails.trainBlockerEntity = StasisLandMine.CreateFrozenTrainCarriageBlocker(frozenVehicleDetails.affectedEntityDetails)
+        frozenVehicleDetails.trainBlockerEntity = StasisLandMine.CreateFrozenTrainCarriageBlocker(affectedEntityDetails)
 
         -- Capture if there's a driver in the vehicle. Trains only have 1 player slot.
         local driver = vehicleEntity.get_driver()
@@ -335,14 +347,15 @@ StasisLandMine.FreezeVehicleInitial = function(frozenVehicleDetails, currentTick
 
     -- Schedule the vehicle check each tick.
     global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
-    EventScheduler.ScheduleEventOnce(currentTick + 1, "StasisLandMine.FreezeVehicle", global.stasisLandMine.nextSchedulerId, frozenVehicleDetails)
+    EventScheduler.ScheduleEventOnce(currentTick + 1, "StasisLandMine.KeepVehicleFrozen", global.stasisLandMine.nextSchedulerId, frozenVehicleDetails)
 end
 
 --- Keep a vehicle frozen every tick.
 ---@param event UtilityScheduledEvent_CallbackObject
-StasisLandMine.FreezeVehicle = function(event)
-    local frozenVehicleDetails = event.data ---@type FreezeVehicleDetails
-    local vehicleEntity = frozenVehicleDetails.affectedEntityDetails.entity
+StasisLandMine.KeepVehicleFrozen = function(event)
+    local frozenVehicleDetails = event.data ---@type FrozenVehicleDetails
+    local affectedEntityDetails = frozenVehicleDetails.affectedEntityDetails
+    local vehicleEntity, vehicleType = affectedEntityDetails.entity, affectedEntityDetails.entityType
     if vehicleEntity == nil or (not vehicleEntity.valid) then
         return
     end
@@ -350,14 +363,14 @@ StasisLandMine.FreezeVehicle = function(event)
     -- Check that any players in the vehicles are as they were at the start (not got in/out).
     -- Some disabled vehicles will prevent players from getting out, but it's patchy so just check all.
     StasisLandMine.CheckVehicleSeat(frozenVehicleDetails, "driver", event.tick)
-    if frozenVehicleDetails.vehicleType == "car" or frozenVehicleDetails.vehicleType == "spider-vehicle" then
+    if vehicleType == "car" or vehicleType == "spider-vehicle" then
         -- Only these vehicle types can have passengers.
         StasisLandMine.CheckVehicleSeat(frozenVehicleDetails, "passenger", event.tick)
     end
 
-    if event.tick < (frozenVehicleDetails.affectedEntityDetails.unfreezeTick - 1) then
+    if event.tick < (affectedEntityDetails.unfreezeTick - 1) then
         global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
-        EventScheduler.ScheduleEventOnce(event.tick + 1, "StasisLandMine.FreezeVehicle", global.stasisLandMine.nextSchedulerId, frozenVehicleDetails)
+        EventScheduler.ScheduleEventOnce(event.tick + 1, "StasisLandMine.KeepVehicleFrozen", global.stasisLandMine.nextSchedulerId, frozenVehicleDetails)
     end
 end
 
@@ -375,7 +388,7 @@ StasisLandMine.CreateFrozenTrainCarriageBlocker = function(affectedEntityDetails
 end
 
 --- Check a vehicles seats are as expected.
----@param frozenVehicleDetails FreezeVehicleDetails
+---@param frozenVehicleDetails FrozenVehicleDetails
 ---@param seat "driver"|"passenger"
 ---@param currentTick uint
 StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat, currentTick)
@@ -484,7 +497,7 @@ StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat, currentTi
 end
 
 --- Release a vehicle caught in the blast from being frozen.
----@param frozenVehicleDetails FreezeVehicleDetails
+---@param frozenVehicleDetails FrozenVehicleDetails
 StasisLandMine.UnFreezeVehicle = function(frozenVehicleDetails)
     local entity = frozenVehicleDetails.affectedEntityDetails.entity
 
@@ -505,6 +518,54 @@ StasisLandMine.UnFreezeVehicle = function(frozenVehicleDetails)
     -- Remove any train blocker if there was one.
     if frozenVehicleDetails.trainBlockerEntity ~= nil and frozenVehicleDetails.trainBlockerEntity.valid then
         frozenVehicleDetails.trainBlockerEntity.destroy({ raise_destroy = false })
+    end
+end
+
+--- Initial freeze of a character entity type.
+---@param frozenCharacterDetails FrozenCharacterDetails
+---@param currentTick uint
+StasisLandMine.FreezeCharacterInitial = function(frozenCharacterDetails, currentTick)
+    local affectedEntityDetails = frozenCharacterDetails.affectedEntityDetails
+    local characterEntity = affectedEntityDetails.entity
+
+    frozenCharacterDetails.inVehicle = characterEntity.driving
+
+    -- Schedule the character check each tick.
+    global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
+    EventScheduler.ScheduleEventOnce(currentTick + 1, "StasisLandMine.KeepCharacterFrozen", global.stasisLandMine.nextSchedulerId, frozenCharacterDetails)
+end
+
+--- Keep a character frozen every tick.
+---@param event UtilityScheduledEvent_CallbackObject
+StasisLandMine.KeepCharacterFrozen = function(event)
+    local frozenCharacterDetails = event.data ---@type FrozenCharacterDetails
+    local affectedEntityDetails = frozenCharacterDetails.affectedEntityDetails
+    local characterEntity = affectedEntityDetails.entity
+    if characterEntity == nil or (not characterEntity.valid) then
+        return
+    end
+
+    -- Check any vehicle state change.
+    local currentVehicle = characterEntity.vehicle
+    if (currentVehicle ~= nil) ~= frozenCharacterDetails.inVehicle then
+        -- Vehicle state has changed.
+
+        -- Only worry if the vehicle isn't in stasis itself. As if the vehicle is in stasis it will deal with the player.
+        if not global.stasisLandMine.affectedEntities[currentVehicle.unit_number] then
+            -- This can only be reached if the player has entered a non stasis affected vehicle. SO just eject the player.
+            characterEntity.driving = false
+        end
+    end
+
+    -- If the player has moved position update any graphics. This may be from trying to get in to a non stasis'd vehicle and being kicked out by this function, or just teleported around the map.
+    local newPosition, newSurface = characterEntity.position, characterEntity.surface
+    if newPosition.x ~= affectedEntityDetails.initialPosition.x or newPosition.y ~= affectedEntityDetails.initialPosition.y or newSurface ~= affectedEntityDetails.initialSurface then
+        StasisLandMine.UpdateAffectedEntityEffects(affectedEntityDetails, event.tick, characterEntity, newPosition, newSurface)
+    end
+
+    if event.tick < (affectedEntityDetails.unfreezeTick - 1) then
+        global.stasisLandMine.nextSchedulerId = global.stasisLandMine.nextSchedulerId + 1
+        EventScheduler.ScheduleEventOnce(event.tick + 1, "StasisLandMine.KeepCharacterFrozen", global.stasisLandMine.nextSchedulerId, frozenCharacterDetails)
     end
 end
 

@@ -1,7 +1,4 @@
 Now:
-    - If an affected player character is teleported the effect graphic and light should go with it.
-    - If an affected player character gets in to any vehicle and they weren't in one before they should be ejected.
-    - Check for overlaps between character and vehicle checking logic when both are affected. Remove entirely un-needed code, but sometimes overlapping code is fine as long as it doesn't fight with itself.
 
 
 
