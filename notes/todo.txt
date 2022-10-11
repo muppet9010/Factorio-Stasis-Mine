@@ -10,4 +10,9 @@ Future:
 
 
 
+Ideal World:
+    - Change the affect graphics and light to be a series of separate effects. Then we can do the fade in and out for both. Also when we have to recreate them for teleported things we can skip any fade in duration. At present its generally ok-ish.
+
+
+
 Notes:

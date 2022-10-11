@@ -3,6 +3,8 @@ Lights
 
 At present the lights are done via rendering. Down side is that these lights can't fade in or out like an explosion can. But for an explosion we need to make a dedicated explosion just for the light, as the very long durations of the effect mean we need a very slow frame progression in the explosion to avoid the max frame limit (255).
 
+The rendered lights are presently destroyed and re-created for a teleported player or vehicle. While they could have their position updated, you can't update the surface they are on. Also you can't move the smoke graphic effect. So for now we just recreate both. In an ideal world both need a bunch more development to make them truly smooth.
+
 
 
 Stasis graphics Effect

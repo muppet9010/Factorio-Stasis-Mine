@@ -184,7 +184,7 @@ StasisLandMine.ApplyStasisToTarget = function(entity, currentTick, freezeDuratio
     affectedEntityDetails.affectedGraphic, affectedEntityDetails.affectedLightId = StasisLandMine.CreateAffectedEntityEffects(entity, entity_position, entity_surface, freezeDuration)
 end
 
---- Create the affected entity light.
+--- Create the affected entities graphics and light.
 ---@param entity LuaEntity
 ---@param entityPosition MapPosition
 ---@param entitySurface LuaSurface
@@ -212,6 +212,26 @@ StasisLandMine.CreateAffectedEntityEffects = function(entity, entityPosition, en
     end
 
     return affectedGraphic, lightRenderId
+end
+
+--- Update the affected entities graphics and light.
+---@param affectedEntityDetails AffectedEntityDetails
+---@param currentTick uint
+---@param entity LuaEntity
+---@param entityPosition MapPosition
+---@param entitySurface LuaSurface
+StasisLandMine.UpdateAffectedEntityEffects = function(affectedEntityDetails, currentTick, entity, entityPosition, entitySurface)
+    local freezeDuration = affectedEntityDetails.unfreezeTick - currentTick
+    affectedEntityDetails.affectedGraphic.destroy()
+    if affectedEntityDetails.affectedLightId ~= nil then
+        -- Destroy the old light if there was one.
+        rendering.destroy(affectedEntityDetails.affectedLightId)
+    end
+    affectedEntityDetails.affectedGraphic, affectedEntityDetails.affectedLightId = StasisLandMine.CreateAffectedEntityEffects(entity, entityPosition, entitySurface, freezeDuration)
+
+    -- Update the cached details of this entity for the moved graphic.
+    affectedEntityDetails.initialPosition = entityPosition
+    affectedEntityDetails.initialSurface = entitySurface
 end
 
 --- Remove the stasis effect from a target.
@@ -378,18 +398,7 @@ StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat, currentTi
         local newPosition, newSurface = vehicleEntity.position, vehicleEntity.surface
         if newPosition.x ~= affectedEntityDetails.initialPosition.x or newPosition.y ~= affectedEntityDetails.initialPosition.y or newSurface ~= affectedEntityDetails.initialSurface then
             -- Vehicle has been teleported, so remove the old graphic and light, and then make new ones.
-            local freezeDuration = affectedEntityDetails.unfreezeTick - currentTick
-            affectedEntityDetails.affectedGraphic.destroy()
-            if affectedEntityDetails.affectedLightId ~= nil then
-                -- Destroy the old light if there was one.
-                rendering.destroy(affectedEntityDetails.affectedLightId)
-            end
-            affectedEntityDetails.affectedGraphic, affectedEntityDetails.affectedLightId = StasisLandMine.CreateAffectedEntityEffects(vehicleEntity, newPosition, newSurface, freezeDuration)
-
-            -- Update the cached details of this vehicle for the moved graphic.
-            affectedEntityDetails.initialPosition = newPosition
-            affectedEntityDetails.initialSurface = newSurface
-
+            StasisLandMine.UpdateAffectedEntityEffects(affectedEntityDetails, currentTick, vehicleEntity, newPosition, newSurface)
             vehicleMoved = true
         end
 
@@ -467,18 +476,7 @@ StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat, currentTi
                 local character_affectedEntityDetails = global.stasisLandMine.affectedEntities[currentSeatCharacter.unit_number--[[@as Identifier]] ]
                 if character_affectedEntityDetails ~= nil then
                     -- As they went in and out of the vehicle we need to update their affected graphics as they will have moved locations, despite being frozen the whole time.
-                    local freezeDuration = character_affectedEntityDetails.unfreezeTick - currentTick
-                    local character_newPosition, character_newSurface = currentSeatCharacter.position, currentSeatCharacter.surface
-                    character_affectedEntityDetails.affectedGraphic.destroy()
-                    if character_affectedEntityDetails.affectedLightId ~= nil then
-                        -- Destroy the old light if there was one.
-                        rendering.destroy(character_affectedEntityDetails.affectedLightId)
-                    end
-                    character_affectedEntityDetails.affectedGraphic, character_affectedEntityDetails.affectedLightId = StasisLandMine.CreateAffectedEntityEffects(currentSeatCharacter, character_newPosition, character_newSurface, freezeDuration)
-
-                    -- Update the cached details of this vehicle for the moved graphic.
-                    character_affectedEntityDetails.initialPosition = character_newPosition
-                    character_affectedEntityDetails.initialSurface = character_newSurface
+                    StasisLandMine.UpdateAffectedEntityEffects(character_affectedEntityDetails, currentTick, currentSeatCharacter, currentSeatCharacter.position, currentSeatCharacter.surface)
                 end
             end
         end
