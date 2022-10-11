@@ -31,6 +31,8 @@ Notes
 - When a rolling stock affected by stasis is disconnected from other carriages the effect is the same as in regular Factorio, however, this may feel odd due to the delay in impact until he stasis effect has worn off. A side effect of the rolling stock being in stasis is that it can not be connected back to other carriages during the stasis effect, but it can be disconnected; this is just unfortunate default Factorio logic.
 - Cars and spider-vehicles caught in a stasis are disabled (`active = false`), however this property can't be applied to trains. Everything in stasis can be identified as they have `destructible = false` and `openable = false`, which wouldn't normally be set on any regular Factorio entities; this can be used by other mods to exclude entities and vehicles affected by stasis as they would other weird modded entities.
 
+---------------------------------
+
 
 
 Remotely triggering an area stasis effect via Lua script
@@ -67,6 +69,8 @@ if player then
     remote.call("stasis_weapons", "stasis_effect", player.surface, player.position, player.force, "enemy", nil, nil)
 end
 ```
+
+---------------------------------
 
 
 
