@@ -1,4 +1,15 @@
 ---------------------------------------------------------------------------------------------------
+Version: 20.0.6
+Date: 2022-10-16
+  Features:
+  Changes:
+  Bugfixes:
+    - Fix crash when stasis landmine detonated. Caused by silly trivial last minute change that apparently wasn't tested afterwards.
+    - Fix warning when using remote interface calls on a player with no character.
+  Info:
+    - Stasis graphics effect made more definite (less transparent) by doubling up the smoke graphics count. Known & documented limitation in mod design.
+    - Trains always get a larger stasis graphics, whereas all other entities get a stasis effect based on their smallest selection box side length (closest to graphics size).
+---------------------------------------------------------------------------------------------------
 Version: 20.0.5
 Date: 2022-10-11
   Features:

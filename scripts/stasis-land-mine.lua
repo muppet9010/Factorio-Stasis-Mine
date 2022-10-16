@@ -26,6 +26,7 @@ local LoggingUtils = require("utility.helper-utils.logging-utils")
 ---@field frozenVehicleDetails FrozenVehicleDetails|nil
 ---@field frozenCharacterDetails FrozenCharacterDetails|nil
 ---@field affectedGraphic LuaEntity
+---@field affectedGraphic2 LuaEntity
 ---@field affectedLightId uint64|nil # Rendered light Id if there's a light. We don't make one if there's not enough time left.
 ---
 ---@field oldHealth float|nil # Legacy value that we no longer set. But we need to handle updated mods that had stasis effects with it.
@@ -118,6 +119,10 @@ StasisLandMine.OnScriptTriggerEffect = function(event, stasisTicks, effectArea)
         -- Is the detonation itself.
         local position
         if event.effect_id == "stasis_land_mine_source" then
+            -- CODE NOTE: The source_position isn't populated for actual landmines.
+            position = event.source_entity.position
+        elseif event.effect_id == "stasis_remote_source" then
+            -- This is a fake event call from the remote interface code.
             position = event.source_position
         else
             -- CODE NOTE: for `event.effect_id == "stasis_rocket_source"` then `event.source_entity` is only populated if the target is still alive at the time of rocket detonation. `event.target_position` is always populated where the rocket explodes.
@@ -198,36 +203,43 @@ StasisLandMine.ApplyStasisToTarget = function(entity, currentTick, freezeDuratio
 
 
     -- Show the effect on the entity.
-    StasisLandMine.CreateAffectedEntityEffects(affectedEntityDetails, entity, entity_position, entity_surface, freezeDuration)
+    StasisLandMine.CreateAffectedEntityEffects(affectedEntityDetails, entity_position, entity_surface, freezeDuration)
 end
 
 --- Create the affected entities graphics and light.
 ---@param affectedEntityDetails AffectedEntityDetails
----@param entity LuaEntity
 ---@param entityPosition MapPosition
 ---@param entitySurface LuaSurface
 ---@param freezeDuration uint
-StasisLandMine.CreateAffectedEntityEffects = function(affectedEntityDetails, entity, entityPosition, entitySurface, freezeDuration)
-    local entity_selectionBox = entity.selection_box
+StasisLandMine.CreateAffectedEntityEffects = function(affectedEntityDetails, entityPosition, entitySurface, freezeDuration)
+    local entity_selectionBox, entityType = affectedEntityDetails.entity.selection_box, affectedEntityDetails.entityType
 
     -- Work out the graphic and light based on the entities selection_box as an indication of its approx graphics size in the game.
     local width, height = entity_selectionBox.right_bottom.x - entity_selectionBox.left_top.x, entity_selectionBox.right_bottom.y - entity_selectionBox.left_top.y
     local smallestDimensionSize = math.min(width, height)
     local graphicName, lightScale
-    if smallestDimensionSize <= 1.5 then
-        graphicName = "stasis_mine-stasis_target_impact_effect"
-        lightScale = 0.5
-    elseif smallestDimensionSize <= 3 then
-        graphicName = "stasis_mine-stasis_target_impact_effect-medium"
-        lightScale = 1.0
-    elseif smallestDimensionSize <= 6 then
+    if (entityType == "locomotive" or entityType == "cargo-wagon" or entityType == "fluid-wagon" or entityType == "artillery-wagon") then
+        -- Hard code to the larger effect type
         graphicName = "stasis_mine-stasis_target_impact_effect-large"
-        lightScale = 2.0
+        lightScale = 2.
     else
-        graphicName = "stasis_mine-stasis_target_impact_effect-huge"
-        lightScale = 3.0
+        -- All other entity types.
+        if smallestDimensionSize <= 1.5 then
+            graphicName = "stasis_mine-stasis_target_impact_effect"
+            lightScale = 0.5
+        elseif smallestDimensionSize <= 3 then
+            graphicName = "stasis_mine-stasis_target_impact_effect-medium"
+            lightScale = 1.0
+        elseif smallestDimensionSize <= 6 then
+            graphicName = "stasis_mine-stasis_target_impact_effect-large"
+            lightScale = 2.0
+        else
+            graphicName = "stasis_mine-stasis_target_impact_effect-huge"
+            lightScale = 3.0
+        end
     end
-    -- Place the graphics and light in the center of the selection_box to get it near the middle of the entities graphics, as its position can be far off in some cases.
+
+    -- The graphics and light will go in the center of the selection_box to get it near the middle of the entities graphics, as its position can be far off in some cases.
     local effectPosition = {
         x = entity_selectionBox.left_top.x + (width / 2),
         y = entity_selectionBox.left_top.y + (height / 2) + 0.75
@@ -238,11 +250,17 @@ StasisLandMine.CreateAffectedEntityEffects = function(affectedEntityDetails, ent
         name = graphicName,
         position = effectPosition
     } ---@cast affectedGraphic - nil
+    local affectedGraphic2 = entitySurface.create_entity {
+        name = graphicName,
+        position = effectPosition
+    } ---@cast affectedGraphic2 - nil
     if freezeDuration ~= global.modSettings["stasis_ticks"] then
         -- Only update the TTL if it isn't the mod setting one, as the mod setting is part of the prototype already.
         affectedGraphic.time_to_live = freezeDuration
+        affectedGraphic2.time_to_live = freezeDuration
     end
     affectedEntityDetails.affectedGraphic = affectedGraphic
+    affectedEntityDetails.affectedGraphic2 = affectedGraphic2
 
     -- Add the light.
     local lightRenderId ---@type uint64|nil
@@ -257,17 +275,21 @@ end
 --- We destroy and recreate them as this will happen very rarely and has a relatively low UPS cost really.
 ---@param affectedEntityDetails AffectedEntityDetails
 ---@param currentTick uint
----@param entity LuaEntity
 ---@param entityPosition MapPosition
 ---@param entitySurface LuaSurface
-StasisLandMine.UpdateAffectedEntityEffects = function(affectedEntityDetails, currentTick, entity, entityPosition, entitySurface)
+StasisLandMine.UpdateAffectedEntityEffects = function(affectedEntityDetails, currentTick, entityPosition, entitySurface)
     local freezeDuration = affectedEntityDetails.unfreezeTick - currentTick
-    affectedEntityDetails.affectedGraphic.destroy()
+    if affectedEntityDetails.affectedGraphic ~= nil and affectedEntityDetails.affectedGraphic.valid then
+        affectedEntityDetails.affectedGraphic.destroy()
+    end
+    if affectedEntityDetails.affectedGraphic2 ~= nil and affectedEntityDetails.affectedGraphic2.valid then
+        affectedEntityDetails.affectedGraphic2.destroy()
+    end
     if affectedEntityDetails.affectedLightId ~= nil then
         -- Destroy the old light if there was one.
         rendering.destroy(affectedEntityDetails.affectedLightId)
     end
-    StasisLandMine.CreateAffectedEntityEffects(affectedEntityDetails, entity, entityPosition, entitySurface, freezeDuration)
+    StasisLandMine.CreateAffectedEntityEffects(affectedEntityDetails, entityPosition, entitySurface, freezeDuration)
 
     -- Update the cached details of this entity for the moved graphic.
     affectedEntityDetails.initialPosition = entityPosition
@@ -452,7 +474,7 @@ StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat, currentTi
         local newPosition, newSurface = vehicleEntity.position, vehicleEntity.surface
         if newPosition.x ~= affectedEntityDetails.initialPosition.x or newPosition.y ~= affectedEntityDetails.initialPosition.y or newSurface ~= affectedEntityDetails.initialSurface then
             -- Vehicle has been teleported, so remove the old graphic and light, and then make new ones.
-            StasisLandMine.UpdateAffectedEntityEffects(affectedEntityDetails, currentTick, vehicleEntity, newPosition, newSurface)
+            StasisLandMine.UpdateAffectedEntityEffects(affectedEntityDetails, currentTick, newPosition, newSurface)
             vehicleMoved = true
         end
 
@@ -512,7 +534,7 @@ StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat, currentTi
             end ---@cast currentSeatOccupant - nil
             if currentSeatCharacter ~= nil then
                 -- For a player to be ejected from a train carriage the train carriage can't have a blocker directly under its center. So we remove the blocker and then return it after ejecting the player.
-                if frozenVehicleDetails.trainBlockerEntity ~= nil then
+                if frozenVehicleDetails.trainBlockerEntity ~= nil and frozenVehicleDetails.trainBlockerEntity.valid then
                     frozenVehicleDetails.trainBlockerEntity.destroy({ raise_destroy = false })
                 end
                 currentSeatOccupant.driving = false
@@ -530,7 +552,7 @@ StasisLandMine.CheckVehicleSeat = function(frozenVehicleDetails, seat, currentTi
                 local character_affectedEntityDetails = global.stasisLandMine.affectedEntities[currentSeatCharacter.unit_number--[[@as Identifier]] ]
                 if character_affectedEntityDetails ~= nil then
                     -- As they went in and out of the vehicle we need to update their affected graphics as they will have moved locations, despite being frozen the whole time.
-                    StasisLandMine.UpdateAffectedEntityEffects(character_affectedEntityDetails, currentTick, currentSeatCharacter, currentSeatCharacter.position, currentSeatCharacter.surface)
+                    StasisLandMine.UpdateAffectedEntityEffects(character_affectedEntityDetails, currentTick, currentSeatCharacter.position, currentSeatCharacter.surface)
                 end
             end
         end
@@ -601,7 +623,7 @@ StasisLandMine.KeepCharacterFrozen = function(event)
     -- If the player has moved position update any graphics. This may be from trying to get in to a non stasis'd vehicle and being kicked out by this function, or just teleported around the map.
     local newPosition, newSurface = characterEntity.position, characterEntity.surface
     if newPosition.x ~= affectedEntityDetails.initialPosition.x or newPosition.y ~= affectedEntityDetails.initialPosition.y or newSurface ~= affectedEntityDetails.initialSurface then
-        StasisLandMine.UpdateAffectedEntityEffects(affectedEntityDetails, event.tick, characterEntity, newPosition, newSurface)
+        StasisLandMine.UpdateAffectedEntityEffects(affectedEntityDetails, event.tick, newPosition, newSurface)
     end
 
     if event.tick < (affectedEntityDetails.unfreezeTick - 1) then
@@ -838,12 +860,11 @@ StasisLandMine.CreateStasisEffect_Remote = function(surface, position, ourForce_
     end
 
     -- Do the detonation effects like the weapons do. But we need to do a dynamically scaled graphic.
-    --surface.create_entity({ name = "stasis_mine-stasis_source_impact_effect", position = position })
     local animationScale = effectRadius / 2.5
     rendering.draw_animation({ animation = "stasis_source_impact_animation", x_scale = animationScale, y_scale = animationScale, target = position, surface = surface, time_to_live = 30 })
 
     -- Do the detonation effect like the weapons does. Call in to our event handler function as if we were the event itself.
-    StasisLandMine.OnScriptTriggerEffect({ effect_id = "stasis_land_mine_source", source_position = position, surface_index = surface.index }, nil, effectRadius)
+    StasisLandMine.OnScriptTriggerEffect({ effect_id = "stasis_remote_source", source_position = position, surface_index = surface.index }, nil, effectRadius)
 end
 
 return StasisLandMine

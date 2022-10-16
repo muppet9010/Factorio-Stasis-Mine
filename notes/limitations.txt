@@ -13,3 +13,5 @@ Stasis graphics Effect
 As we are using trivial smoke for the effect graphics it seems to be very transparent and nothing we can do about this. Maybe a different smoke type would let us have a more solid image. If not an explosion would, but they have big issues with durations due to a max of 255 frames.
 
 In previous testing have a slightly more solid graphic was nicer, but as I couldn't make it support the longer run time its not worth pursuing now.
+
+For now I am just creating 2 identical smokes on top of each other to make the graphic more solid for the affected units. The initial explosion can stay more transparent as it's larger and so far more visible already.

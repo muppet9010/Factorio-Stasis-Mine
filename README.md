@@ -25,7 +25,7 @@ Notes
 - Things already in a stasis can not be affected by another stasis triggering. Only "free" things can enter a stasis.
 - Inspired by the Protoss Stasis Trap in StarCraft 2, but adapted for Factorio.
 - Stasis land mines are themselves immune from the stasis effect. So making a dense minefield is fine.
-- Vehicles that are placed in stasis are stopped instantly, however, once the stasis wears off the vehicles continue at their same speed. Trains maintain their train stop reservations.
+- Vehicles that are placed in stasis are stopped instantly, however, once the stasis wears off the vehicles return to their original speed instantly. Trains maintain their train stop reservations through the stasis effect.
 - Disabled vehicles are able to fire a single shot (in the chamber) of any weapon. This is just how Factorio appears to work for disabled vehicles.
 - Players are prevented from getting in and out of vehicles in stasis. This is done via script and not a Factorio permission group to maintain compatibility with other mods & scenarios. If the player gets out of the vehicle and is found to be more than a short distance away it is assumed to be intentional, i.e. via a teleport command from another script. This is try and keep it compatible with streamer integrations that teleport players and won't be aware that their vehicle was being affected by a stasis.
 - When a rolling stock affected by stasis is disconnected from other carriages the effect is the same as in regular Factorio, however, this may feel odd due to the delay in impact until he stasis effect has worn off. A side effect of the rolling stock being in stasis is that it can not be connected back to other carriages during the stasis effect, but it can be disconnected; this is just unfortunate default Factorio logic.
@@ -64,7 +64,7 @@ Example code below to create a stasis effect at a static position with the speci
 Example code below to create a stasis effect on a player against their enemies with the mod default radius and time values.
 
 ```
-/sc local player = game.get_player("muppet9010")
+/sc local player = game.connected_players[1]
 if player then
     remote.call("stasis_weapons", "stasis_effect", player.surface, player.position, player.force, "enemy", nil, nil)
 end
@@ -89,7 +89,7 @@ You can remote trigger the stasis effect on a single entity via a Lua script.
 Example code below to stasis the player's vehicle/character for the set time.
 
 ```
-/sc local player = game.get_player("muppet9010")
+/sc local player = game.connected_players[1]
 if player then
     local entityToFreeze = player.vehicle or player.character
     if entityToFreeze then
