@@ -63,7 +63,7 @@ Example code below to create a stasis effect at a static position with the speci
 
 Example code below to create a stasis effect on a player against their enemies with the mod default radius and time values.
 
-```
+ ```
 /sc local player = game.connected_players[1]
 if player then
     remote.call("stasis_weapons", "stasis_effect", player.surface, player.position, player.force, "enemy", nil, nil)
